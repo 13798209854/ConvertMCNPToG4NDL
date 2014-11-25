@@ -25,13 +25,18 @@ int main(int argc, char **argv)
     string outputType="ascii";
     bool ascii=true;
     string word;
-    char lib, check1, check2, check3;
+    char lib, version='7', check1, check2, check3;
     string inFileName, outDirName;
     int result=0;
 
     stringstream stream;
 
-    if(argc==4)
+    if(argc==5)
+    {
+        stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4];
+        stream >> inFileName >> outDirName >> outputType >> version;
+    }
+    else if(argc==4)
     {
         stream << argv[1] << ' ' << argv[2] << ' ' << argv[3];
         stream >> inFileName >> outDirName >> outputType;
@@ -54,9 +59,34 @@ int main(int argc, char **argv)
     stream.clear();
     stream.str("");
 
-    GetDataStream(inFileName, stream);
+    if(inFileName.back()=='/')
+    {
+        lib = version;
+        stringstream tempData;
+        DIR *dir;
+        struct dirent *ent;
+        if ((dir = opendir (inFileName.c_str())) != NULL)
+        {
+            while ((ent = readdir (dir)) != NULL)
+            {
+                if(string(ent->d_name).substr(0, 5)==("endf"+version))
+                {
+                    GetDataStream(inFileName, tempData);
+                    stream.str(stream.str()+'\n'+tempData.str());
+                    tempData.str("");
+                    tempData.clear();
+                }
+            }
+            closedir(dir);
+        }
+    }
+    else
+    {
+        GetDataStream(inFileName, stream);
+        lib = inFileName[int(inFileName.length()-3)];
+    }
 
-    lib = inFileName[int(inFileName.length()-3)];
+
 
     while(stream)
     {
