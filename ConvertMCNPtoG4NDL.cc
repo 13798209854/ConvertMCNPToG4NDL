@@ -17,6 +17,7 @@ void MakeCSDataFile(string fileName, std::stringstream& stream, int MTRNum, doub
 void GetDataStream( string, std::stringstream&);
 void SetDataStream( string, std::stringstream&, bool);
 
+//Takes in a directory of MCNP cross-section libraries, converts the data into the G4NDL format and then outputs the information in a given directory
 int main(int argc, char **argv)
 {
     ElementNames elementNames;
@@ -24,13 +25,14 @@ int main(int argc, char **argv)
 
     string outputType="ascii";
     bool ascii=true;
-    string word;
+    string word, libName="endf";
     char lib, version='7', check1, check2, check3;
-    string inFileName, outDirName;
+    string inFileName, outDirName, fileName;
     int result=0;
 
     stringstream stream;
 
+    //Extracts user Inputs
     if(argc==5)
     {
         stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4];
@@ -61,20 +63,39 @@ int main(int argc, char **argv)
 
     if(inFileName.back()=='/')
     {
-        lib = version;
-        stringstream tempData;
+        libName.push_back(version);
         DIR *dir;
         struct dirent *ent;
+
+        //goes through the given directory and converts the ENDF libraries that match the given vversion
         if ((dir = opendir (inFileName.c_str())) != NULL)
         {
             while ((ent = readdir (dir)) != NULL)
             {
-                if(string(ent->d_name).substr(0, 5)==("endf"+version))
+                if(string(ent->d_name).substr(0, 5)==libName)
                 {
-                    GetDataStream(inFileName, tempData);
-                    stream.str(stream.str()+'\n'+tempData.str());
-                    tempData.str("");
-                    tempData.clear();
+                    fileName=inFileName+ent->d_name;
+                    // Gets data from the file and stores it into a data stream
+                    GetDataStream(fileName, stream);
+                    while(stream)
+                    {
+                        stream >> word;
+                        check1=word[int(word.find_last_of('.')+1)];
+                        check2=word[int(word.find_last_of('.')+2)];
+                        check3=word[int(word.find_last_of('.')+3)];
+
+                        //checks whether the word matches the beggining of an isotope data set identifier
+                        if((check1==version)&&((check2>='0')&&(check2<='9'))/*&&((check3=='c')||(check3=='d'))*/)
+                        {
+                            if((check3=='c')||(check3=='d'))
+                            {
+                                // gets the elastic, inelastic, fission and capture CS data for the isotope
+                                result += CreateIsoCSData(stream, outDirName, ascii);
+                            }
+                        }
+                    }
+                    stream.str("");
+                    stream.clear();
                 }
             }
             closedir(dir);
@@ -82,23 +103,25 @@ int main(int argc, char **argv)
     }
     else
     {
+        // Gets data from the file and stores it into a data stream
         GetDataStream(inFileName, stream);
         lib = inFileName[int(inFileName.length()-3)];
-    }
 
-
-
-    while(stream)
-    {
-        stream >> word;
-        check1=word[int(word.find_last_of('.')+1)];
-        check2=word[int(word.find_last_of('.')+2)];
-        check3=word[int(word.find_last_of('.')+3)];
-        if((check1==lib)&&((check2>='0')&&(check2<='9'))/*&&((check3=='c')||(check3=='d'))*/)
+        while(stream)
         {
-            if((check3=='c')||(check3=='d'))
+            stream >> word;
+            check1=word[int(word.find_last_of('.')+1)];
+            check2=word[int(word.find_last_of('.')+2)];
+            check3=word[int(word.find_last_of('.')+3)];
+
+            //checks whether the word matches the beggining of an isotope data set identifier
+            if((check1==lib)&&((check2>='0')&&(check2<='9'))/*&&((check3=='c')||(check3=='d'))*/)
             {
-                result += CreateIsoCSData(stream, outDirName, ascii);
+                if((check3=='c')||(check3=='d'))
+                {
+                    // gets the elastic, inelastic, fission and capture CS data for the isotope
+                    result += CreateIsoCSData(stream, outDirName, ascii);
+                }
             }
         }
     }
@@ -110,12 +133,14 @@ int main(int argc, char **argv)
     return result;
 }
 
+//Extraxts the CS data from the MCNP file and stroes it in a G4NDL formatted file
 int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii)
 {
     ElementNames *elementNames;
     char line[256];
     string temperature, isoName;
     string dummy, Z, A, outDirNameFis, outDirNameElas, outDirNameInE, outDirNameCap;
+    string outDirNameProc[4];
     stringstream numConv;
     int numEner=0, numReactions=0;
     int startEnerTable, startMTRBlock;
@@ -129,6 +154,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii)
     double *energyVec=NULL, *fisCSVec=NULL, *elasCSVec=NULL, *inECSVec=NULL, *capCSVec=NULL;
     std::vector<int> MTRList, LSIGList;
 
+    //extracts the temperature
     stream >> dummy >> temp;
     temp=temp*1000000/(8.6173324*(pow(10, -5)));
     numConv << temp;
@@ -137,104 +163,36 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii)
     numConv.str("");
     outDirName = outDirName+temperature+'/';
 
-    outDirNameFis = outDirName +"Fission/CrossSection/";
-    outDirNameElas = outDirName +"Elastic/CrossSection/";
-    outDirNameInE = outDirName +"Inelastic/CrossSection/";
-    outDirNameCap = outDirName +"Capture/CrossSection/";
+    outDirNameProc[2] = outDirName +"Fission/CrossSection/";
+    outDirNameProc[1] = outDirName +"Elastic/CrossSection/";
+    outDirNameProc[3] = outDirName +"Inelastic/CrossSection/";
+    outDirNameProc[0] = outDirName +"Capture/CrossSection/";
 
-    if(!(DirectoryExists(outDirNameFis.c_str())))
+    // creates temperature directories for the converted files to go if they don't already exist
+    for(int i=0; i<4; i++)
     {
-        system( ("mkdir -p -m=666 "+outDirNameFis).c_str());
-        if(DirectoryExists(outDirNameFis.c_str()))
+        if(!(DirectoryExists((outDirNameProc[i]).c_str())))
         {
-            cout << "created temperature directory " << outDirNameFis << "\n" << endl;
-        }
-        else
-        {
-            cout << "\nError: could not create temperature Directory " << outDirNameFis << "\n" << endl;
-            if(energyVec!=NULL)
-                delete[] energyVec;
-            if(elasCSVec!=NULL)
-                delete[] elasCSVec;
-            if(capCSVec!=NULL)
-                delete[] capCSVec;
-            if(inECSVec!=NULL)
-                delete[] inECSVec;
-            if(fisCSVec!=NULL)
-                delete[] fisCSVec;
-            return 1;
-        }
-    }
-
-    if(!(DirectoryExists(outDirNameElas.c_str())))
-    {
-        system( ("mkdir -p -m=666 "+outDirNameElas).c_str());
-        if(DirectoryExists(outDirNameElas.c_str()))
-        {
-            cout << "created temperature directory " << outDirNameElas << "\n" << endl;
-        }
-        else
-        {
-            cout << "\nError: could not create temperature Directory " << outDirNameElas << "\n" << endl;
-            if(energyVec!=NULL)
-                delete[] energyVec;
-            if(elasCSVec!=NULL)
-                delete[] elasCSVec;
-            if(capCSVec!=NULL)
-                delete[] capCSVec;
-            if(inECSVec!=NULL)
-                delete[] inECSVec;
-            if(fisCSVec!=NULL)
-                delete[] fisCSVec;
-            return 1;
-        }
-    }
-
-    if(!(DirectoryExists(outDirNameInE.c_str())))
-    {
-        system( ("mkdir -p -m=666 "+outDirNameInE).c_str());
-        if(DirectoryExists(outDirNameInE.c_str()))
-        {
-            cout << "created temperature directory " << outDirNameInE << "\n" << endl;
-        }
-        else
-        {
-            cout << "\nError: could not create temperature Directory " << outDirNameInE << "\n" << endl;
-            if(energyVec!=NULL)
-                delete[] energyVec;
-            if(elasCSVec!=NULL)
-                delete[] elasCSVec;
-            if(capCSVec!=NULL)
-                delete[] capCSVec;
-            if(inECSVec!=NULL)
-                delete[] inECSVec;
-            if(fisCSVec!=NULL)
-                delete[] fisCSVec;
-            return 1;
-        }
-    }
-
-    if(!(DirectoryExists(outDirNameCap.c_str())))
-    {
-        system( ("mkdir -p -m=666 "+outDirNameCap).c_str());
-        if(DirectoryExists(outDirNameCap.c_str()))
-        {
-            cout << "created temperature directory " << outDirNameCap << "\n" << endl;
-        }
-        else
-        {
-            cout << "\nError: could not create temperature Directory " << outDirNameCap << "\n" << endl;
-            if(energyVec!=NULL)
-                delete[] energyVec;
-            if(elasCSVec!=NULL)
-                delete[] elasCSVec;
-            if(capCSVec!=NULL)
-                delete[] capCSVec;
-            if(inECSVec!=NULL)
-                delete[] inECSVec;
-            if(fisCSVec!=NULL)
-                delete[] fisCSVec;
-            return 1;
+            system( ("mkdir -p -m=666 "+outDirNameProc[i]).c_str());
+            if(DirectoryExists((outDirNameProc[i]).c_str()))
+            {
+                cout << "created temperature directory " << outDirNameProc[i] << "\n" << endl;
+            }
+            else
+            {
+                cout << "\nError: could not create temperature Directory " << outDirNameProc[i] << "\n" << endl;
+                if(energyVec!=NULL)
+                    delete[] energyVec;
+                if(elasCSVec!=NULL)
+                    delete[] elasCSVec;
+                if(capCSVec!=NULL)
+                    delete[] capCSVec;
+                if(inECSVec!=NULL)
+                    delete[] inECSVec;
+                if(fisCSVec!=NULL)
+                    delete[] fisCSVec;
+                return 1;
+            }
         }
     }
 
@@ -242,9 +200,9 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii)
     {
         stream.getline(line,256);
     }
-
+    // Extracts the isotope name
     stream >> dummy >> isoName;
-
+    // gets the isotope numbers
     Z=isoName.substr(0, int(floor(double(isoName.length())/2)));
     A=isoName.substr(int(floor(double(isoName.length())/2)), int(ceil(double(isoName.length())/2)));
 
@@ -404,13 +362,13 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii)
     stringstream ssCSFile;
 
     if(numEner!=0)
-        MakeCSDataFile(outDirNameElas+isoName, ssCSFile, 2, energyVec, elasCSVec, numEner, startEnerTable, ascii);
+        MakeCSDataFile(outDirNameProc[1]+isoName, ssCSFile, 2, energyVec, elasCSVec, numEner, startEnerTable, ascii);
     if(fisCSVecSize!=0)
-        MakeCSDataFile(outDirNameFis+isoName, ssCSFile, 18, energyVec, fisCSVec, fisCSVecSize, startFisEner, ascii);
+        MakeCSDataFile(outDirNameProc[2]+isoName, ssCSFile, 18, energyVec, fisCSVec, fisCSVecSize, startFisEner, ascii);
     if(inECSVecSize!=0)
-        MakeCSDataFile(outDirNameInE+isoName, ssCSFile, 4, energyVec, inECSVec, inECSVecSize, startInElasEner, ascii);
+        MakeCSDataFile(outDirNameProc[3]+isoName, ssCSFile, 4, energyVec, inECSVec, inECSVecSize, startInElasEner, ascii);
     if(capCSVecSize!=0)
-        MakeCSDataFile(outDirNameCap+isoName, ssCSFile, 102, energyVec, capCSVec, capCSVecSize, startCapEner, ascii);
+        MakeCSDataFile(outDirNameProc[0]+isoName, ssCSFile, 102, energyVec, capCSVec, capCSVecSize, startCapEner, ascii);
 
     if(energyVec!=NULL)
         delete[] energyVec;
