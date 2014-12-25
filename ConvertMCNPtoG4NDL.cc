@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         {
             while ((ent = readdir (dir)) != NULL)
             {
-                if(string(ent->d_name).substr(0, 5)==("endf"+version))
+                if(string(ent->d_name).substr(0, 5)==("endf7"))
                 {
                     GetDataStream(inFileName, tempData);
                     stream.str(stream.str()+'\n'+tempData.str());
