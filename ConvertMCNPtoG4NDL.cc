@@ -248,7 +248,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii)
     for(int i=0; i<numEner; i++, count++)
     {
         stream >> temp;
-        energyVec[i]=temp;
+        energyVec[i]=temp*1000000.; //Converting from MeV to eV
     }
 
     for(;count<startElasticBlock; count++)
