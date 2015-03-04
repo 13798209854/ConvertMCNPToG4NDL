@@ -415,20 +415,22 @@ void MakeCSDataFile(string fileName, std::stringstream& stream, int MTRNum, doub
     stream.clear();
     stream.str("");
 
-    stream << MTRNum << '\n';
-    stream << '0' << '\n';
-    stream << vecSize << '\n';
+    stream << std::setw(14) << std::right << MTRNum << '\n';
+    stream << std::setw(14) << std::right << '0' << '\n';
+    stream << std::setw(14) << std::right << vecSize;
+    stream.precision(6);
+    stream.setf(std::ios::scientific);
 
     stream.fill(' ');
 
     for(int i=0; i<vecSize; i++)
     {
-        if(floor(i/2)==ceil(double(i)/2))
+        if(floor(i/3)==ceil(double(i)/3))
         {
             stream << '\n';
         }
-        stream << std::setw(14) << std::left << energyVec[i+startEnergy-1];
-        stream << std::setw(14) << std::left << CSVec[i];
+        stream << std::setw(14) << std::right << energyVec[i+startEnergy-1];
+        stream << std::setw(14) << std::right << CSVec[i];
     }
     stream << '\n';
 
