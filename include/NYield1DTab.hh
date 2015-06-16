@@ -10,6 +10,12 @@ class NYield1DTab: public YieldDist
         virtual ~NYield1DTab();
         void ExtractMCNPData(stringstream stream, int &count);
         void WriteG4NDLData(stringstream data);
+        void SubtractPrompt(YieldDist* promptYieldDist);
+        void SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield);
+        string IdentifyYourSelf()
+        {
+            return "NYield1DTab";
+        }
 
         int numRegs, numIncEner;
         int *regEndPos, *intScheme;

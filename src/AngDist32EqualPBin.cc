@@ -24,7 +24,7 @@ void AngDist32EqualPBin::WriteG4NDLData(stringstream stream)
 {
     for(int i=0; i<int(incNEnerVec.size()); i++)
     {
-        stream << std::setw(14) << std::right << temperature << incNEnerVec[i] << 0 << 32 << '\n';
+        stream << std::setw(14) << std::right << temperature << incNEnerVec[i]*1000000 << 0 << 32 << '\n';
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << 32 << 1 << '\n';
         for(int j=0; j<32; j++)

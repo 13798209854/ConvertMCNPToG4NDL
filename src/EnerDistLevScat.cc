@@ -34,11 +34,11 @@ void EnerDistLevScat::WriteG4NDLData(stringstream data)
     stream << std::setw(14) << std::right << enerStart << 1 << '\n';
     stream << std::setw(14) << std::right << 1 << '\n';
     stream << std::setw(14) << std::right << 1 << 1 << '\n';
-    stream << std::setw(14) << std::right << eOut1 << 1 << '\n';
+    stream << std::setw(14) << std::right << eOut1*1000000 << 1 << '\n';
 
     stream << std::setw(14) << std::right << enerEnd << 1 << '\n';
     stream << std::setw(14) << std::right << 1 << '\n';
     stream << std::setw(14) << std::right << 1 << 1 << '\n';
-    stream << std::setw(14) << std::right << eOut2 << 1 << '\n';
+    stream << std::setw(14) << std::right << eOut2*1000000 << 1 << '\n';
 
 }

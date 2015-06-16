@@ -84,10 +84,13 @@ void EnerDistConTab::ExtractMCNPData(stringstream stream, int &count)
     }
     for(int i=0; i<numIncEner; i++)
     {
+        //This part is not needed and potentially erroneous
+        /*
         for(;count<(startEnerDist+distPos[i]-1); count++)
         {
             stream >> dummy;
         }
+        */
 
         stream >> intTemp; count++;
         if(intTemp>10)
@@ -132,23 +135,23 @@ void EnerDistConTab::WriteG4NDLData(stringstream data)
     //convert this to G4NDL theRepresentationType=1
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
 
-    for(int i=0; i<numRegs; i++, count++)
+    for(int i=0; i<numRegs; i++)
     {
         stream << std::setw(14) << std::right << regEndPos[i];
         stream << std::setw(14) << std::right << intScheme1[i] << '\n';
     }
 
-    for(int i=0; i<numIncEner; i++, count++)
+    for(int i=0; i<numIncEner; i++)
     {
-        stream << std::setw(14) << std::right << incEner[i];
+        stream << std::setw(14) << std::right << incEner[i]*1000000;
         stream << std::setw(14) << std::right << numPEnerPoints[i];
         // assume linear interpolation
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
 
-        for(int j=0; j<numPEnerPoints[i]; j++, count++)
+        for(int j=0; j<numPEnerPoints[i]; j++)
         {
-            stream << std::setw(14) << std::right << outEner[i][j];
+            stream << std::setw(14) << std::right << outEner[i][j]*1000000;
             stream << std::setw(14) << std::right << outProb[i][j] << '\n';
         }
     }
@@ -183,6 +186,6 @@ double EnerDistConTab::GetAverageOutEnergy()
     }
     avgEner2/=probSum;
 
-    return (1.0-incEner[i-1])*(avgEner2-avgEner1)/(incEner[i]-incEner[i-1])+avgEner1;
+    return ((1.0-incEner[i-1])*(avgEner2-avgEner1)/(incEner[i]-incEner[i-1])+avgEner1)*1000000;
 
 }

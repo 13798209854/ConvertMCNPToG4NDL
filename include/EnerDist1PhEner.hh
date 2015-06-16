@@ -6,7 +6,7 @@
 class EnerDist1PhEner: public EnergyDist
 {
     public:
-        EnerDist1PhEner(double AWR);
+        EnerDist1PhEner(double AWR, double, incEnerLow, double incEnerHigh);
         virtual ~EnerDist1PhEner();
         void ExtractMCNPData(stringstream stream, int &count);
         void WriteG4NDLData(stringstream data);
@@ -19,6 +19,7 @@ class EnerDist1PhEner: public EnergyDist
             else
             {
                 // assume average incoming neutron energy is 1eV
+                cout << "### Use of large energy distribution approximation" << endl;
                 return (photonEN+1*awr/(awr+1));
             }
         }
@@ -29,7 +30,7 @@ class EnerDist1PhEner: public EnergyDist
 
         double photonType // states whether the photn is a primary or non primary photon,
         //which also tells us whether the energy is the photon energy (0,1) or the binding energy (2)
-        double photonEN, awr;
+        double photonEN, awr, incEnLow, incEnHigh;
     protected:
     private:
 };

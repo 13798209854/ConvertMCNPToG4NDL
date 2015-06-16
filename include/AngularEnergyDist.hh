@@ -1,5 +1,5 @@
-#ifndef CSDIST_HH
-#define CSDIST_HH
+#ifndef ANGULARENERGYDIST_HH
+#define ANGULARENERGYDIST_HH
 
 #include <iostream>
 #include <fstream>
@@ -7,25 +7,18 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "zlib.h"
-#include <dirent.h>
 #include "include/ElementNames.hh"
 #include <iomanip>
 
-class CSDist
+class AngularEnergyDist
 {
     public:
-        CSDist();
-        virtual ~CSDist();
+        AngularEnergyDist();
+        virtual ~AngularEnergyDist();
         virtual void ExtractMCNPData(stringstream data)=0;
-        virtual void WriteG4NDLYieldData(stringstream data)=0;
-        virtual void WriteG4NDLCSData(stringstream data)=0;
-        virtual void SetCSData(CSDist* nCSData)=0;
-        virtual double* GetEnergyVec()=0;
-        virtual double* GetCSVec()=0;
-        virtual int GetCSSize()=0;
-        virtual string IdentifyYourSelf()=0;
-        virtual double Interpolate(double x)=0;
+        virtual void WriteG4NDLData(stringstream data)=0;
+        virtual void SetPoint(stringstream data, int &count, double incNEner)=0;
+        SetTemperature(double temp) {temperature=temp;}
 
         double Interpolate(int aScheme, double x, double x1, double x2, double y1, double y2) const;
         double Histogram(double , double , double , double y1, double ) const;
@@ -35,8 +28,10 @@ class CSDist
         double LogarithmicLogarithmic(double x, double x1, double x2, double y1, double y2) const;
         double Random(double , double , double , double y1, double y2) const;
 
+        vector<double> incNEnerVec;
+        double temperature=0;
     protected:
     private:
 };
 
-#endif // CSDIST_HH
+#endif // ANGULARENERGYDIST_HH

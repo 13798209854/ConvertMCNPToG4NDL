@@ -1,10 +1,10 @@
 #ifndef AngEnDistLab3DTab_HH
 #define AngEnDistLab3DTab_HH
 
-#include "AngularDist.hh"
+#include "AngularEnergyDist.hh"
 
 
-class AngEnDistLab3DTab : public AngularDist
+class AngEnDistLab3DTab : public AngularEnergyDist
 {
     public:
         AngEnDistLab3DTab();
@@ -17,7 +17,7 @@ class AngEnDistLab3DTab : public AngularDist
         double *incEner; // contains incoming neutron energy
         double **outAng;
         int **outEnerDistPos, **intScheme3, **numPEnerPoints;
-        double ***outEner, ***outProb, ***outSumProb;
+        double ***outEner, ***outAngProb, ***outAngSumProb;
     protected:
     private:
 };

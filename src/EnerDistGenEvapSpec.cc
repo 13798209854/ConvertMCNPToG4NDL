@@ -83,7 +83,7 @@ void EnerDistGenEvapSpec::WriteG4NDLData(stringstream stream)
 
     for(int i=0; i<numIncEner; i++)
     {
-        stream << incEner[i] << normOutEnerDist[i] << '\n';
+        stream << incEner[i]*1000000 << normOutEnerDist[i] << '\n';
     }
 
     stream << numNormOutEnerDistPoints << '\n';

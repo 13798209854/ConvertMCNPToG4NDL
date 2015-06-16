@@ -72,7 +72,7 @@ void EnerDistEvapSpec::WriteG4NDLData(stringstream data)
 
     for(int i=0; i<numIncEner; i++)
     {
-        stream << incEner[i] << tValues[i] << '\n';
+        stream << incEner[i]*1000000 << tValues[i] << '\n';
     }
 
 }

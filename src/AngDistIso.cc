@@ -23,7 +23,7 @@ void AngDistIso::WriteG4NDLData(stringstream data)
         for(int i=0; i<int(incNEnerVec.size()); i++)
         {
             // creates a normalized isotropic distribution
-            stream << std::setw(14) << std::right << temperature << incNEnerVec[i] << 0 << 2 << '\n';
+            stream << std::setw(14) << std::right << temperature << incNEnerVec[i]*1000000 << 0 << 2 << '\n';
             stream << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << 2 << 2;
             stream << std::setw(14) << std::right << -1 << 0.5 << '\n';

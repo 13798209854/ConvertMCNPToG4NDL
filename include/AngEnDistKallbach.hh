@@ -1,10 +1,11 @@
 #ifndef AngEnDistKallbach_HH
 #define AngEnDistKallbach_HH
 
-#include "AngularDist.hh"
+#include "AngularEnergyDist.hh"
 
+#define numDistSample 200
 
-class AngEnDistKallbach : public AngularDist
+class AngEnDistKallbach : public AngularEnergyDist
 {
     public:
         AngEnDistKallbach(int EnerDistStart);
@@ -23,10 +24,12 @@ class AngEnDistKallbach : public AngularDist
         //numPEnerPoints is the total number of probability energy points
         //numDiscreteEnerPoints is the number of probability energy points that are discrete, numDiscreteEnerPoints<=numPEnerPoints
         double *incEner; // contains incoming neutron energy
-        double **outEner, **outProb, **outSumProb, **rFraction, **angDistSlope;
+        double outAng[numDistSample];
+        double **outEner, **outEnerProb, **outEnerSumProb, **rFraction, **angDistSlope;
+        double ***outAngProb;
         //outEner outgoing energy
-        //outProb probability of this happening
-        //outSumProb cumulative sum of outProb up to this incoming neutron energy
+        //outEnerProb probability of this happening
+        //outEnerSumProb cumulative sum of outEnerProb up to this incoming neutron energy
     protected:
     private:
 };

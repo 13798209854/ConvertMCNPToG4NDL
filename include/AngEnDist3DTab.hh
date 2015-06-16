@@ -1,10 +1,10 @@
 #ifndef ANGENDIST3DTAB_HH
 #define ANGENDIST3DTAB_HH
 
-#include "AngularDist.hh"
+#include "AngularEnergyDist.hh"
 
 
-class AngEnDist3DTab : public AngularDist
+class AngEnDist3DTab : public AngularEnergyDist
 {
     public:
         AngEnDist3DTab(int EnerDistStart);

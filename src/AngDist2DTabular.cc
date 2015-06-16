@@ -30,7 +30,7 @@ void AngDist2DTabular.cc::WriteG4NDLData(stringstream data)
 {
     for(int i=0; i<int(incNEnerVec.size()); i++)
     {
-        stream << std::setw(14) << std::right << temperature << energyAngVec[i] << 0 << numAngProb[i] << '\n';
+        stream << std::setw(14) << std::right << temperature << (energyAngVec[i]*1000000) << 0 << numAngProb[i] << '\n';
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << numAngProb[i] << intSchemeAng[i];
         for(int j=0; j<numAngProb[i] j++)

@@ -127,11 +127,13 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
     }
     for(int i=0; i<numIncEner; i++)
     {
-        //Check to make sure the -1 is needed
+        //Not needed and dangerous since we don't know exactly where outEnDistPos[i] points
+        /*
         for(;count<(startEnerDist+outEnDistPos[i]-1); count++)
         {
             stream >> dummy;
         }
+        */
 
         stream >> intTemp; count++;
         if(intTemp>10)
@@ -182,7 +184,7 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
         {
             if(outAngDistPos[i][j]>0)
             {
-                for(;count<(startEnerDist+outEnDistPos[i]); count++)
+                for(;count<(startEnerDist+outAngDistPos[i][j]); count++)
                 {
                     stream >> dummy;
                 }
@@ -192,8 +194,12 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
                 isoDist[i][j]=true;
                 continue;
             }
+
             stream >> intTemp; count++;
-            intScheme3[i][j] = intTemp;
+            if(intTemp==0)
+                intScheme3[i][j] = 1;
+            else
+                intScheme3[i][j] = 2;
 
             stream >> intTemp; count++;
             numPAngPoints[i][j] = intTemp;
@@ -223,6 +229,110 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
 
 void AngEnDist3DTab::WriteG4NDLData(stringstream data)
 {
+    //this is MCNP Law 61
+    //convert this to G4NDL DistLaw=7
+    //some approximations are used in the transformation
 
+    // this creates a new out-going angle array, for each incoming energy. each of the angles in the new angle arrays
+    // has a new probability dist which is dependant on the out-going energy. We did this to bring the 3D table format
+    // (order of properties) inline with that used by G4NDL DistLaw=7
+    int *sumAngPoints = new int [numIncEner], *newNumAngPoints = new int [numIncEner];
+    double *angMax= new double [numIncEner], *angMin = new double [numIncEner];
+    double **outAngNew = new double* [numIncEner];
+    double ***outEnProbNew = new double** [numIncEner];
 
+    for(int i=0; i<numIncEner; i++)
+    {
+        sumAngPoints[i]=0;
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            sumAngPoints[i]+=numPAngPoints[i][j];
+            angMax[i]=0;
+            angMin[i]=0;
+            for(int k=0; k<numPAngPoints[i][j]; k++)
+            {
+                if(outAng[i][j][k]>angMax)
+                    angMax[i]=outAng[i][j][k];
+                if((outAng[i][j][k]<angMin)||(angMin==0))
+                    angMin[i]=outAng[i][j][k];
+            }
+        }
+    }
+
+    for(int i=0; i<numIncEner; i++)
+    {
+        newNumAngPoints[i] = floor(5*sumAngPoints[i]/numPEnerPoints[i]);
+        outAngNew[i] = new double [newNumAngPoints];
+        outEnProbNew[i] = new double* [newNumAngPoints];
+
+        for(int j=0; j<newNumAngPoints[i]; j++)
+        {
+            outAngNew[i][j] = (angMax[i]-angMin[i])*i/newNumAngPoints[i]+angMin[i]+(angMax[i]-angMin[i])*0.5/newNumAngPoints[i];
+            outEnProbNew[i][j] = new double* [numPEnerPoints[i]];
+
+            for(int k=0; k<numPEnerPoints[i]; k++)
+            {
+                int l;
+                for(l=0; l<numPAngPoints[i][k]; l++)
+                {
+                    if(outAng[i][k][l]>outAngNew[i][j])
+                    {
+                        l--;
+                        break;
+                    }
+                }
+                if(l<0)
+                    l=0;
+                outEnProbNew[i][j][k]=outEnerProb[i][k]*Interpolate(intScheme3[i][k], outAngNew[i][j], outAng[i][k][l], outAng[i][k][l+1], outAngProb[i][k][l], outAngProb[i][k][l+1]);
+            }
+        }
+    }
+
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
+
+    for(int i=0; i<numRegs; i++)
+    {
+        stream << std::setw(14) << std::right << regEndPos[i];
+        stream << std::setw(14) << std::right << intScheme1[i] << '\n';
+    }
+
+    for(int i=0; i<numIncEner; i++)
+    {
+        stream << std::setw(14) << std::right << incEner[i]*1000000;
+        stream << std::setw(14) << std::right << newNumAngPoints[i];
+        // assume linear interpolation
+        stream << std::setw(14) << std::right << 1 << '\n';
+        stream << std::setw(14) << std::right << newNumAngPoints[i] << std::setw(14) << std::right << 2 << '\n';
+
+        for(int j=0; j<newNumAngPoints[i]; j++)
+        {
+            stream << std::setw(14) << std::right << outAngNew[i][j];
+            stream << std::setw(14) << std::right << numPEnerPoints[i];
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
+
+            for(int k=0; k<numPEnerPoints[i]; k++)
+            {
+                stream << std::setw(14) << std::right << outEner[i][k]*1000000;
+                stream << std::setw(14) << std::right << outEnProbNew[i][j][k] << '\n';
+            }
+        }
+    }
+
+    for(int i=0; i<numIncEner; i++)
+    {
+        delete [] outAngNew[i];
+        for(int j=0; j<newNumAngPoints[i]; j++)
+        {
+            delete [] outEnProbNew[i][j];
+        }
+        delete [] outEnProbNew[i];
+    }
+
+    delete [] outEnProbNew;
+    delete [] outAngNew;
+    delete [] angMax;
+    delete [] angMin;
+    delete [] sumAngPoints;
+    delete [] newNumAngPoints;
 }

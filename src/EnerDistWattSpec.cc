@@ -113,7 +113,7 @@ void EnerDistWattSpec::WriteG4NDLData(stringstream data)
 
     for(int i=0; i<numIncEnerA; i++)
     {
-        stream << incEnerA[i] << aValues[i] << '\n';
+        stream << incEnerA[i]*1000000 << aValues[i] << '\n';
     }
 
     stream << numIncEnerB << '\n';
@@ -125,6 +125,6 @@ void EnerDistWattSpec::WriteG4NDLData(stringstream data)
 
     for(int i=0; i<numIncEnerB; i++)
     {
-        stream << incEnerB[i] << bValues[i] << '\n';
+        stream << incEnerB[i]*1000000 << bValues[i] << '\n';
     }
 }

@@ -13,14 +13,13 @@ class CSDistYieldComp : public CSDist
         void WriteG4NDLYieldData(stringstream data);
         void WriteG4NDLCSData(stringstream data);
         string IdentifyYourSelf();
-        void SetCSData(double *csEnerVec, double *cSVec, int cSSize)
+        double Interpolate(double x);
+        void SetCSData(CSDist* nCSData)
         {
-            enerCSVec = csEnerVec;
-            csVec = cSVec;
-            csSize= cSSize;
+            nCSData->SetNCSData(enerCSVec, csEnerStart, csVec, csSize);
         }
 
-        int mtMulti, numRegs, numIncEner, csSize;
+        int mtMulti, numRegs, mtNum, numIncEner, csSize, csEnerStart;
         int *regEndPos, *intScheme
         double *yieldVec, *enerVec, *enerCSVec, *csVec;
     protected:

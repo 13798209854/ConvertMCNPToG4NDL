@@ -32,17 +32,17 @@ AngEnDistLab3DTab::~AngEnDistLab3DTab()
         {
             if(outEner[i][j])
                 delete [] outEner[i][j];
-            if(outProb[i][j])
-                delete [] outProb[i][j];
-            if(outSumProb[i][j])
-                delete [] outSumProb[i][j];
+            if(outAngProb[i][j])
+                delete [] outAngProb[i][j];
+            if(outAngSumProb[i][j])
+                delete [] outAngSumProb[i][j];
         }
         if(outEner[i])
             delete [] outEner[i];
-        if(outProb[i])
-            delete [] outProb[i];
+        if(outAngProb[i])
+            delete [] outAngProb[i];
         if(outAngSumProb[i])
-            delete [] outSumProb[i];
+            delete [] outAngSumProb[i];
     }
     if(numPAngPoints)
         delete [] numPAngPoints;
@@ -56,10 +56,10 @@ AngEnDistLab3DTab::~AngEnDistLab3DTab()
         delete [] numPEnerPoints;
     if(outEner)
         delete [] outEner;
-    if(outProb)
-        delete [] outProb;
-    if(outSumProb)
-        delete [] outSumProb;
+    if(outAngProb)
+        delete [] outAngProb;
+    if(outAngSumProb)
+        delete [] outAngSumProb;
 }
 
 void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
@@ -94,8 +94,8 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
     intScheme3 = new int *[numIncEner];
     numPEnerPoints = new int *[numIncEner];
     outEner = new double **[numIncEner];
-    outProb = new double **[numIncEner];
-    outSumProb = new double **[numIncEner];
+    outAngProb = new double **[numIncEner];
+    outAngSumProb = new double **[numIncEner];
 
     for(int i=0; i<numIncEner; i++, count++)
     {
@@ -109,11 +109,13 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
     }
     for(int i=0; i<numIncEner; i++)
     {
-        //Check to make sure the -1 is needed
+        //not needed, and potentially eroneous
+        /*
         for(;count<(startEnerDist+outAngDistPos[i]-1); count++)
         {
             stream >> dummy;
         }
+        */
 
         stream >> intTemp; count++;
         intScheme2[i]=intTemp;
@@ -125,8 +127,8 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
         intScheme3[i] = new int [numPAngPoints[i]];
         numPEnerPoints[i] = new int [numPAngPoints[i]];
         outEner[i] = new double *[numPAngPoints[i]];
-        outProb[i] = new double *[numPAngPoints[i]];
-        outSumProb[i] = new double *[numPAngPoints[i]];
+        outAngProb[i] = new double *[numPAngPoints[i]];
+        outAngSumProb[i] = new double *[numPAngPoints[i]];
 
         for(int j=0; j<numPAngPoints[i]; j++, count++)
         {
@@ -140,11 +142,13 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
         }
         for(int j=0; j<numPAngPoints[i]; j++)
         {
-            //Check to make sure the -1 is needed
+            //not needed, and potentially erroneous
+            /*
             for(;count<(startEnerDist+outEnerDistPos[i]-1); count++)
             {
                 stream >> dummy;
             }
+            */
             stream >> intTemp; count++;
             intScheme3[i][j] = intTemp;
 
@@ -163,12 +167,12 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
                 stream >> temp; count++;
-                outProb[i][j][k] = temp;
+                outAngProb[i][j][k] = temp;
             }
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
                 stream >> temp; count++;
-                outSumProb[i][j][k] = temp;
+                outAngSumProb[i][j][k] = temp;
             }
         }
     }
@@ -176,6 +180,37 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
 
 void AngEnDistLab3DTab::WriteG4NDLData(stringstream data)
 {
+    //this is MCNP Law 67
+    //convert this to G4NDL DistLaw=7
 
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
 
+    for(int i=0; i<numRegs; i++)
+    {
+        stream << std::setw(14) << std::right << regEndPos[i];
+        stream << std::setw(14) << std::right << intScheme1[i] << '\n';
+    }
+
+    for(int i=0; i<numIncEner; i++)
+    {
+        stream << std::setw(14) << std::right << incEner[i]*1000000;
+        stream << std::setw(14) << std::right << numPAngPoints[i];
+        // assume linear interpolation
+        stream << std::setw(14) << std::right << 1 << '\n';
+        stream << std::setw(14) << std::right << numPAngPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
+
+        for(int j=0; j<numPAngPoints[i]; j++)
+        {
+            stream << std::setw(14) << std::right << outAng[i][j];
+            stream << std::setw(14) << std::right << numPEnerPoints[i][j];
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numPEnerPoints[i][j] << std::setw(14) << std::right << intScheme3[i][j] << '\n';
+
+            for(int k=0; k<numPEnerPoints[i][j]; k++)
+            {
+                stream << std::setw(14) << std::right << outEner[i][j][k]*1000000;
+                stream << std::setw(14) << std::right << outAngProb[i][j][k] << '\n';
+            }
+        }
+    }
 }

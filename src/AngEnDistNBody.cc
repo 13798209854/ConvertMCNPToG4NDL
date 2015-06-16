@@ -15,8 +15,11 @@ void AngEnDistNBody::ExtractMCNPData(stringstream stream, int &count)
     stream >> numBodies >> particleMassRatio; count = count+2;
 }
 
-void AngEnDistNBody::WriteG4NDLData(stringstream data)
+void AngEnDistNBody::WriteG4NDLData(stringstream stream)
 {
+    //this is MCNP Law 66
+    //convert this to G4NDL DistLaw=6
 
+    stream << particleMassRatio << numBodies << '\n';
 }
 

@@ -85,13 +85,13 @@ void EnerDistEqPEnerBins::WriteG4NDLData(stringstream data)
     for(int i=0; i<int(incEner.size()); i++)
     {
         // note the histogram scheme is right biased, we checked
-        stream << std::setw(14) << std::right << incEner[i] << outEner[i].size() << '\n';
+        stream << std::setw(14) << std::right << incEner[i]*1000000 << outEner[i].size() << '\n';
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << outEner[i].size() << 1 << '\n';
 
         for(int j=0; j<int(outEner[i].size()); j++)
         {
-            stream << std::setw(14) << std::right << outEner[i][j] << 1/(outEner[i].size()*(outEner[i][j+1]-outEner[i][j])) << '\n';
+            stream << std::setw(14) << std::right << outEner[i][j]*1000000 << 1/(outEner[i].size()*(outEner[i][j+1]*1000000-outEner[i][j]*1000000)) << '\n';
         }
     }
 }

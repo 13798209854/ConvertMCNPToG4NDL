@@ -1,10 +1,10 @@
 #ifndef ANGENDISTNBODY_HH
 #define ANGENDISTNBODY_HH
 
-#include "AngularDist.hh"
+#include "AngularEnergyDist.hh"
 
 
-class AngEnDistNBody : public AngularDist
+class AngEnDistNBody : public AngularEnergyDist
 {
     public:
         AngEnDistNBody();

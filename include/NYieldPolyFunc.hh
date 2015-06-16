@@ -10,6 +10,15 @@ class NYieldPolyFunc: public YieldDist
         virtual ~NYieldPolyFunc();
         void WriteG4NDLData(stringstream data);
         void ExtractMCNPData(stringstream stream, int &count);
+        void SubtractPrompt(YieldDist* promptYieldDist);
+        void SubtractPrompt(double *totalCoeff, int &totalNumCoeff);
+        void SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield);
+        void ConvertToLinDist(int *regEndPos, int &numIncEner, double *incEner, double *yield);
+
+        string IdentifyYourSelf()
+        {
+            return "NYieldPolyFunc";
+        }
         int numCoeff;
         double *coeff;
     protected:

@@ -69,7 +69,7 @@ void AngDistP32EqBin::WriteG4NDLData(stringstream data)
 {
     for(int i=0; i<int(incNEnerVec.size()); i++)
     {
-        stream << std::setw(14) << std::right << incNEnerVec[i] << 32 << '\n';
+        stream << std::setw(14) << std::right << incNEnerVec[i]*1000000 << 32 << '\n';
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << 32 << 1 << '\n';
         for(int j=0; j<32; j++)

@@ -89,11 +89,11 @@ void EnerDistTabMulti::WriteG4NDLData(stringstream data)
 
     for(int i=0; i<numIncEner; i++, count++)
     {
-        stream << std::setw(14) << std::right << incEner[i];
-        stream << std::setw(14) << std::right << numOutEnerPerIn;
+        stream << std::setw(14) << std::right << incEner[i]*1000000;
+        stream << std::setw(14) << std::right << 2*numOutEnerPerIn;
         // assume linear interpolation
         stream << std::setw(14) << std::right << 1 << '\n';
-        stream << std::setw(14) << std::right << numOutEnerPerIn << std::setw(14) << std::right << 2 << '\n';
+        stream << std::setw(14) << std::right << 2*numOutEnerPerIn << std::setw(14) << std::right << 2 << '\n';
 
         outEner=new double [2*numPEnerPoints];
         outProbDist=new double [2*numPEnerPoints];
@@ -102,13 +102,13 @@ void EnerDistTabMulti::WriteG4NDLData(stringstream data)
 
         if(i==numIncEner-1)
         {
-            low=incEner[i]-(incEner[i]-incEner[i-1]);
-            high=incEner[i]+(incEner[i]-incEner[i-1]);
+            low=incEner[i]-0.5*(incEner[i]-incEner[i-1]);
+            high=incEner[i]+0.5*(incEner[i]-incEner[i-1]);
         }
         else
         {
-            low=incEner[i]-(incEner[i+1]-incEner[i]);
-            high=incEner[i]+(incEner[i+1]-incEner[i]);
+            low=incEner[i]-0.5*(incEner[i+1]-incEner[i]);
+            high=incEner[i]+0.5*(incEner[i+1]-incEner[i]);
         }
 
         for(int j=0; j<numOutEnerPerIn; j++)
@@ -170,7 +170,7 @@ void EnerDistTabMulti::WriteG4NDLData(stringstream data)
 
         for(int j=0; j<2*numOutEnerPerIn; j++)
         {
-            stream << std::setw(14) << std::right << outEner[j];
+            stream << std::setw(14) << std::right << outEner[j]*1000000;
             stream << std::setw(14) << std::right << outProbDist[j] << '\n';
         }
         delete[] outEner;

@@ -1,16 +1,16 @@
-#include "CSDist.hh"
+#include "AngularEnergyDist.hh"
 
-CSDist::CSDist()
+AngularEnergyDist::AngularEnergyDist()
 {
     //ctor
 }
 
-CSDist::~CSDist()
+AngularEnergyDist::~AngularEnergyDist()
 {
     //dtor
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 Interpolate(int aScheme,
             double x, double x1, double x2, double y1, double y2) const
 {
@@ -41,13 +41,13 @@ Interpolate(int aScheme,
       break;
     default:
       cout << "theScheme = "<<theScheme<<endl;
-      throw HadronicException(__FILE__, __LINE__, "CSDist::Carthesian Invalid InterpolationScheme");
+      throw HadronicException(__FILE__, __LINE__, "AngularEnergyDist::Carthesian Invalid InterpolationScheme");
       break;
   }
   return result;
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 Histogram(double , double , double , double y1, double ) const
 {
   double result;
@@ -55,7 +55,7 @@ Histogram(double , double , double , double y1, double ) const
   return result;
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 LinearLinear(double x, double x1, double x2, double y1, double y2) const
 {
   double slope=0, off=0;
@@ -66,7 +66,7 @@ LinearLinear(double x, double x1, double x2, double y1, double y2) const
   return y;
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 LinearLogarithmic(double x, double x1, double x2, double y1, double y2) const
 {
   double result;
@@ -77,7 +77,7 @@ LinearLogarithmic(double x, double x1, double x2, double y1, double y2) const
   return result;
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 LogarithmicLinear(double x, double x1, double x2, double y1, double y2) const
 {
   double result;
@@ -90,7 +90,7 @@ LogarithmicLinear(double x, double x1, double x2, double y1, double y2) const
   return result;
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 LogarithmicLogarithmic(double x, double x1, double x2, double y1, double y2) const
 {
   double result;
@@ -106,7 +106,7 @@ LogarithmicLogarithmic(double x, double x1, double x2, double y1, double y2) con
   return result;
 }
 
-inline double CSDist::
+inline double AngularEnergyDist::
 Random(double , double , double , double y1, double y2) const
 {
   double result;

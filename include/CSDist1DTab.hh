@@ -7,10 +7,18 @@ class CSDist1DTab: public CSDist
 {
     public:
         CSDist1DTab(double *energyVec);
-        CSDist1DTab(double *energyVec, int numCSEner, int startEnerTable);
+        CSDist1DTab(double *energyVec, int numCSEner);
         virtual ~CSDist1DTab();
         void ExtractMCNPData(stringstream data, int count&);
         void WriteG4NDLCSData(stringstream data);
+        double Interpolate(double x);
+        void SetNCSData(double* enerCSVec, int &csEnerStart, double* csVec, int &csSize)
+        {
+            enerCSVec=enerVec;
+            csEnerStart=startEner;
+            csVec=CSVec;
+            csSize=CSVecSize;
+        }
         void IdentifyYourSelf();
         double* GetEnergyVec();
         {
