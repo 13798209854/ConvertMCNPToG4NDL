@@ -1,4 +1,4 @@
-#include "NDelayConstDist.hh"
+#include "../include/NDelayConstDist.hh"
 
 NDelayConstDist::NDelayConstDist(int tableEndPos)
 {
@@ -29,19 +29,19 @@ NDelayConstDist::~NDelayConstDist()
     }
 }
 
-void NDelayConstDist::ExtractMCNPData(stringstream stream, int &count)
+void NDelayConstDist::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
 
-    while(count<tableEndPos)
+    while(count<tabEndPos)
     {
         stream >> temp >> intTemp; count=count+2;
 
         delConst.push_back(temp);
         numRegs.push_back(intTemp);
         regEndPos.push_back(new int[numRegs.back()]);
-        intScheme.push_back([new int[numRegs.back()]);
+        intScheme.push_back(new int[numRegs.back()]);
 
         for(int i=0; i<numRegs.back(); i++, count++)
         {
@@ -57,8 +57,8 @@ void NDelayConstDist::ExtractMCNPData(stringstream stream, int &count)
 
         stream >> intTemp; count++;
         numIncEner.push_back(intTemp);
-        incEner = new double[numIncEner.back()];
-        prob = new double[numIncEner.back()];
+        incEner.push_back(new double[numIncEner.back()]);
+        prob.push_back(new double[numIncEner.back()]);
 
         for(int i=0; i<numIncEner.back(); i++, count++)
         {
@@ -73,7 +73,7 @@ void NDelayConstDist::ExtractMCNPData(stringstream stream, int &count)
     }
 }
 
-void NDelayConstDist::WriteG4NDLData(stringstream data)
+void NDelayConstDist::WriteG4NDLData(stringstream &stream)
 {
 
 

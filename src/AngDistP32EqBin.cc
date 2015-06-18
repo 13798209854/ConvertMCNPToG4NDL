@@ -1,8 +1,8 @@
-#include "AngDistP32EqBin.hh"
+#include "../include/AngDistP32EqBin.hh"
 
-AngDistP32EqBin::AngDistP32EqBin(int startAngularPDist)
+AngDistP32EqBin::AngDistP32EqBin(/*int startAngularPDist*/)
 {
-    startAngPDist = startAngularPDist;
+    //startAngPDist = startAngularPDist;
 }
 
 AngDistP32EqBin::~AngDistP32EqBin()
@@ -21,14 +21,14 @@ AngDistP32EqBin::~AngDistP32EqBin()
         delete [] angVec;
     */
 
-    for(int i=0; i<int(incNEnerVec.size()), i++)
+    for(int i=0; i<int(incNEnerVec.size()); i++)
     {
         if(angVec[i])
             delete [] angVec[i];
     }
 }
 
-void AngDistP32EqBin::ExtractMCNPData(stringstream stream, int &count)
+void AngDistP32EqBin::ExtractMCNPData(stringstream &stream, int &count)
 {
     /*double temp;
     int intTemp;
@@ -65,7 +65,7 @@ void AngDistP32EqBin::ExtractMCNPData(stringstream stream, int &count)
     */
 }
 
-void AngDistP32EqBin::WriteG4NDLData(stringstream data)
+void AngDistP32EqBin::WriteG4NDLData(stringstream &stream)
 {
     for(int i=0; i<int(incNEnerVec.size()); i++)
     {
@@ -75,7 +75,9 @@ void AngDistP32EqBin::WriteG4NDLData(stringstream data)
         for(int j=0; j<32; j++)
         {
             // note the histogram scheme is right biased, we checked
-            stream << std::setw(14) << std::right << angVec[i][j] << 1/(32*(angVec[i][j+1]-angVec[i][j])) << '\n';
+            stream << std::setw(14) << std::right << angVec[i][j] << std::setw(14) << std::right << 1/(32*(angVec[i][j+1]-angVec[i][j]));
+            if(j%3==0)
+                stream << '\n';
         }
     }
 }

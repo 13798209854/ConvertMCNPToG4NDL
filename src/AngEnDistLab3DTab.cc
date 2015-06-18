@@ -1,8 +1,8 @@
-#include "AngEnDistLab3DTab.hh"
+#include "../include/AngEnDistLab3DTab.hh"
 
-AngEnDistLab3DTab::AngEnDistLab3DTab(int EnerDistStart)
+AngEnDistLab3DTab::AngEnDistLab3DTab(/*int EnerDistStart*/)
 {
-    startEnerDist =  EnerDistStart;
+    //startEnerDist =  EnerDistStart;
 }
 
 AngEnDistLab3DTab::~AngEnDistLab3DTab()
@@ -32,17 +32,17 @@ AngEnDistLab3DTab::~AngEnDistLab3DTab()
         {
             if(outEner[i][j])
                 delete [] outEner[i][j];
-            if(outAngProb[i][j])
-                delete [] outAngProb[i][j];
-            if(outAngSumProb[i][j])
-                delete [] outAngSumProb[i][j];
+            if(outEnProb[i][j])
+                delete [] outEnProb[i][j];
+            if(outEnSumProb[i][j])
+                delete [] outEnSumProb[i][j];
         }
         if(outEner[i])
             delete [] outEner[i];
-        if(outAngProb[i])
-            delete [] outAngProb[i];
-        if(outAngSumProb[i])
-            delete [] outAngSumProb[i];
+        if(outEnProb[i])
+            delete [] outEnProb[i];
+        if(outEnSumProb[i])
+            delete [] outEnSumProb[i];
     }
     if(numPAngPoints)
         delete [] numPAngPoints;
@@ -56,13 +56,13 @@ AngEnDistLab3DTab::~AngEnDistLab3DTab()
         delete [] numPEnerPoints;
     if(outEner)
         delete [] outEner;
-    if(outAngProb)
-        delete [] outAngProb;
-    if(outAngSumProb)
-        delete [] outAngSumProb;
+    if(outEnProb)
+        delete [] outEnProb;
+    if(outEnSumProb)
+        delete [] outEnSumProb;
 }
 
-void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
+void AngEnDistLab3DTab::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -94,8 +94,8 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
     intScheme3 = new int *[numIncEner];
     numPEnerPoints = new int *[numIncEner];
     outEner = new double **[numIncEner];
-    outAngProb = new double **[numIncEner];
-    outAngSumProb = new double **[numIncEner];
+    outEnProb = new double **[numIncEner];
+    outEnSumProb = new double **[numIncEner];
 
     for(int i=0; i<numIncEner; i++, count++)
     {
@@ -127,8 +127,8 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
         intScheme3[i] = new int [numPAngPoints[i]];
         numPEnerPoints[i] = new int [numPAngPoints[i]];
         outEner[i] = new double *[numPAngPoints[i]];
-        outAngProb[i] = new double *[numPAngPoints[i]];
-        outAngSumProb[i] = new double *[numPAngPoints[i]];
+        outEnProb[i] = new double *[numPAngPoints[i]];
+        outEnSumProb[i] = new double *[numPAngPoints[i]];
 
         for(int j=0; j<numPAngPoints[i]; j++, count++)
         {
@@ -155,9 +155,9 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
             stream >> intTemp; count++;
             numPEnerPoints[i][j] = intTemp;
 
-            outEner = new double [numPEnerPoints[i][j]];
-            outAngProb = new double [numPEnerPoints[i][j]];
-            outAngSumProb = new double [numPEnerPoints[i][j]];
+            outEner[i][j] = new double [numPEnerPoints[i][j]];
+            outEnProb[i][j] = new double [numPEnerPoints[i][j]];
+            outEnSumProb[i][j] = new double [numPEnerPoints[i][j]];
 
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
@@ -167,23 +167,23 @@ void AngEnDistLab3DTab::ExtractMCNPData(stringstream stream, int &count)
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
                 stream >> temp; count++;
-                outAngProb[i][j][k] = temp;
+                outEnProb[i][j][k] = temp;
             }
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
                 stream >> temp; count++;
-                outAngSumProb[i][j][k] = temp;
+                outEnSumProb[i][j][k] = temp;
             }
         }
     }
 }
 
-void AngEnDistLab3DTab::WriteG4NDLData(stringstream data)
+void AngEnDistLab3DTab::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 67
     //convert this to G4NDL DistLaw=7
 
-    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
     {
@@ -209,7 +209,9 @@ void AngEnDistLab3DTab::WriteG4NDLData(stringstream data)
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][j][k]*1000000;
-                stream << std::setw(14) << std::right << outAngProb[i][j][k] << '\n';
+                stream << std::setw(14) << std::right << outEnProb[i][j][k];
+                if(k%3==0)
+                    stream << '\n';
             }
         }
     }

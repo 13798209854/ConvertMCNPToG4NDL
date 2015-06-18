@@ -1,4 +1,4 @@
-#include "NYieldPolyFunc.hh"
+#include "../include/NYieldPolyFunc.hh"
 
 NYieldPolyFunc::NYieldPolyFunc()
 {
@@ -11,7 +11,7 @@ NYieldPolyFunc::~NYieldPolyFunc()
         delete [] coeff;
 }
 
-void NYieldPolyFunc::ExtractMCNPData(stringstream stream, int &count)
+void NYieldPolyFunc::ExtractMCNPData(stringstream &stream, int &count)
 {
     double temp;
     stream >> numCoeff; count++;
@@ -23,7 +23,7 @@ void NYieldPolyFunc::ExtractMCNPData(stringstream stream, int &count)
     }
 }
 
-void NYieldPolyFunc::WriteG4NDLData(stringstream data)
+void NYieldPolyFunc::WriteG4NDLData(stringstream &stream)
 {
     stream << std::setw(14) << std::right << numCoeff << '\n';
     for(int i=0; i< numCoeff; i++)
@@ -35,9 +35,9 @@ void NYieldPolyFunc::WriteG4NDLData(stringstream data)
 
 void NYieldPolyFunc::SubtractPrompt(YieldDist* promptYieldDist)
 {
-    if(promptYieldDist.IdentifyYourself()=="NYieldPolyFunc")
+    if(promptYieldDist->IdentifyYourSelf()=="NYieldPolyFunc")
     {
-        promptYieldDist.SubtractPrompt(coeff, numCoeff);
+        promptYieldDist->SubtractPrompt(coeff, numCoeff);
     }
     else
     {
@@ -90,7 +90,7 @@ void NYieldPolyFunc::SubtractPrompt(int totalNumIncEner, double *totalIncEner, d
 
 }
 
-void ConvertToLinDist(int *regEndPos, int &numIncEner, double *incEner, double *yield)
+void NYieldPolyFunc::ConvertToLinDist(int *regEndPos, int &numIncEner, double *incEner, double *yield)
 {
     int j;
     double sum, energy;
@@ -98,14 +98,19 @@ void ConvertToLinDist(int *regEndPos, int &numIncEner, double *incEner, double *
     numIncEner=(numCoeff-2)*100+2;
     if(numIncEner<1)
         numIncEner=1;
-    regEndPos[0]=numIncEner-1;
+    regEndPos[0]=numIncEner;
+
+    if(incEner)
+        delete incEner;
+    if(yield)
+        delete yield;
 
     incEner = new double [numIncEner];
     yield = new double [numIncEner];
 
     for(int i=0; i<numIncEner; i++)
     {
-        incEner[i]=20000000.*(i/numIncEner);
+        incEner[i]=20*(i/numIncEner);
         sum=0.;
         energy=1.;
         for(j=0; j<numCoeff; j++)

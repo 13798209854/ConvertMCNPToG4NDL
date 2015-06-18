@@ -7,21 +7,28 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "zlib.h"
 #include <dirent.h>
-#include "include/ElementNames.hh"
 #include <iomanip>
+using namespace std;
 
+/*
+Created By: Wesley Ford June 17, 2015
+
+This class is the mother class of all the classes responsible for the extraction of the out-going energy distribution data from MCNP
+*/
 
 class EnergyDist
 {
     public:
         EnergyDist();
         virtual ~EnergyDist();
-        virtual void ExtractMCNPData(stringstream data, int count&)=0;
-        virtual void WriteG4NDLData(stringstream data)=0;
+        virtual void ExtractMCNPData(stringstream &stream, int &count)=0;
+        virtual void WriteG4NDLData(stringstream &stream)=0;
         virtual string IdentifyYourSelf()=0;
-        virtual double GetAverageOutEnergy()=0;
+        virtual double GetAverageOutEnergy()
+        {
+            return 0.;
+        }
     protected:
     private:
 };

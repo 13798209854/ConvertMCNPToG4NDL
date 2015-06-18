@@ -1,4 +1,4 @@
-#include "AngularDist.hh"
+#include "../include/AngularDist.hh"
 
 AngularDist::AngularDist()
 {

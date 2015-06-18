@@ -1,11 +1,11 @@
-#include "EnerDistEvapSpec.hh"
+#include "../include/EnerDistEvapSpec.hh"
 
 EnerDistEvapSpec::EnerDistEvapSpec()
 {
     //ctor
 }
 
-EnerDistEvapSpec::~EnerDistGenEvapSpec()
+EnerDistEvapSpec::~EnerDistEvapSpec()
 {
     if(regEndPos)
         delete [] regEndPos;
@@ -17,7 +17,7 @@ EnerDistEvapSpec::~EnerDistGenEvapSpec()
         delete [] tValues;
 }
 
-void EnerDistEvapSpec::ExtractMCNPData(stringstream stream, int &count)
+void EnerDistEvapSpec::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -56,23 +56,25 @@ void EnerDistEvapSpec::ExtractMCNPData(stringstream stream, int &count)
 }
 
 //For Fission
-void EnerDistEvapSpec::WriteG4NDLData(stringstream data)
+void EnerDistEvapSpec::WriteG4NDLData(stringstream &stream)
 {
 //this is MCNP law 9
 //convert this to G4NDL theRepresentationType=9
 //check the physics to make sure this is equivalent, appears to be the same except for the added coefficient in the MCNP version
 //we ignore the provided restriction energy since G4NDL does not ask for it
 
-    stream << numIncEner << '\n';
-    stream << numRegs << '\n';
+    stream << std::setw(14) << std::right << numIncEner << '\n';
+    stream << std::setw(14) << std::right << numRegs << '\n';
     for(int i=0; i<numRegs; i++)
     {
-        stream << regEndPos[i] << intScheme[i] << '\n';
+        stream << std::setw(14) << std::right << regEndPos[i] << std::setw(14) << std::right << intScheme[i] << '\n';
     }
 
     for(int i=0; i<numIncEner; i++)
     {
-        stream << incEner[i]*1000000 << tValues[i] << '\n';
+        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << tValues[i];
+        if(i%3==0)
+            stream << '\n';
     }
 
 }

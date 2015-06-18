@@ -1,4 +1,4 @@
-#include "EnerDistGenEvapSpec.hh"
+#include "../include/EnerDistGenEvapSpec.hh"
 
 EnerDistGenEvapSpec::EnerDistGenEvapSpec()
 {
@@ -19,7 +19,7 @@ EnerDistGenEvapSpec::~EnerDistGenEvapSpec()
         delete [] normOutEnerDist;
 }
 
-void EnerDistGenEvapSpec::ExtractMCNPData(stringstream stream, int &count)
+void EnerDistGenEvapSpec::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -66,7 +66,7 @@ void EnerDistGenEvapSpec::ExtractMCNPData(stringstream stream, int &count)
 }
 
 //For Fission
-void EnerDistGenEvapSpec::WriteG4NDLData(stringstream stream)
+void EnerDistGenEvapSpec::WriteG4NDLData(stringstream &stream)
 {
     //this MCNP energy dist law 5
     //Convert to G4NDL theRepresentationType 5
@@ -74,24 +74,27 @@ void EnerDistGenEvapSpec::WriteG4NDLData(stringstream stream)
     // mcnp data, assume that the multipliers are uniformly probable
     //or figure out what kind of a probability distribution MCNP uses for the evaporation scheme
 
-    stream << numIncEner << '\n';
-    stream << numRegs << '\n';
+    stream << std::setw(14) << std::right << numIncEner << '\n';
+    stream << std::setw(14) << std::right << numRegs << '\n';
     for(int i=0; i<numRegs; i++)
     {
-        stream << regEndPos[i] << intScheme[i] << '\n';
+        stream << std::setw(14) << std::right << regEndPos[i] << std::setw(14) << std::right << intScheme[i] << '\n';
     }
 
     for(int i=0; i<numIncEner; i++)
     {
-        stream << incEner[i]*1000000 << normOutEnerDist[i] << '\n';
+        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << normOutEnerDist[i] << '\n';
     }
 
-    stream << numNormOutEnerDistPoints << '\n';
-    stream << 1 << '\n';
-    stream << numNormOutEnerDistPoints << 2 << '\n';
+    stream << std::setw(14) << std::right << numNormOutEnerDistPoints << '\n';
+    stream << std::setw(14) << std::right << 1 << '\n';
+    stream << std::setw(14) << std::right << numNormOutEnerDistPoints << 2 << '\n';
 
+    //we assume that the outEnerMulti are randomly sample equaly but a different distribution could be used, try and find out
     for(int i=0; i<numNormOutEnerDistPoints; i++)
     {
-        stream << outEnerMulti[i] << 1/(outEnerMulti.size()) << '\n';
+        stream << std::setw(14) << std::right << outEnerMulti[i] << std::setw(14) << std::right << 1/(numNormOutEnerDistPoints);
+        if(i%3==0)
+            stream << '\n';
     }
 }

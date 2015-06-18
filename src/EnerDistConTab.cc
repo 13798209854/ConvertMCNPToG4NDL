@@ -1,8 +1,8 @@
-#include "EnerDistConTab.hh"
+#include "../include/EnerDistConTab.hh"
 
-EnerDistConTab::EnerDistConTab(int EnerDistStart)
+EnerDistConTab::EnerDistConTab(/*int EnerDistStart*/)
 {
-    startEnerDist =  EnerDistStart;
+    /*startEnerDist =  EnerDistStart;*/
 }
 
 EnerDistConTab::~EnerDistConTab()
@@ -40,7 +40,7 @@ EnerDistConTab::~EnerDistConTab()
         delete [] outSumProb;
 }
 
-void EnerDistConTab::ExtractMCNPData(stringstream stream, int &count)
+void EnerDistConTab::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -129,11 +129,11 @@ void EnerDistConTab::ExtractMCNPData(stringstream stream, int &count)
 }
 
 //for Capture data, Fission
-void EnerDistConTab::WriteG4NDLData(stringstream data)
+void EnerDistConTab::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 4
     //convert this to G4NDL theRepresentationType=1
-    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
     {
@@ -152,7 +152,9 @@ void EnerDistConTab::WriteG4NDLData(stringstream data)
         for(int j=0; j<numPEnerPoints[i]; j++)
         {
             stream << std::setw(14) << std::right << outEner[i][j]*1000000;
-            stream << std::setw(14) << std::right << outProb[i][j] << '\n';
+            stream << std::setw(14) << std::right << outProb[i][j];
+            if(j%3==0)
+                stream << '\n';
         }
     }
 
@@ -160,7 +162,7 @@ void EnerDistConTab::WriteG4NDLData(stringstream data)
 
 double EnerDistConTab::GetAverageOutEnergy()
 {
-    int i
+    int i;
     double probSum=0, avgEner1=0, avgEner2=0;
     for(i=0; i<numIncEner; i++)
     {
@@ -171,7 +173,7 @@ double EnerDistConTab::GetAverageOutEnergy()
     if(i==0)
         i++;
 
-    for(int j=0; j<numPEnerPoints[i-1]-1; j++, count++)
+    for(int j=0; j<numPEnerPoints[i-1]-1; j++)
     {
         probSum += (outProb[i-1][j+1]-outProb[i-1][j])/2;
         avgEner1 += (outEner[i-1][j+1]-outEner[i-1][j])*(outProb[i-1][j+1]-outProb[i-1][j])/2;
@@ -179,7 +181,7 @@ double EnerDistConTab::GetAverageOutEnergy()
     avgEner1/=probSum;
     probSum=0;
 
-    for(int j=0; j<numPEnerPoints[i]-1; j++, count++)
+    for(int j=0; j<numPEnerPoints[i]-1; j++)
     {
         probSum += (outProb[i][j+1]-outProb[i][j])/2;
         avgEner2 += (outEner[i][j+1]-outEner[i][j])*(outProb[i][j+1]-outProb[i][j])/2;

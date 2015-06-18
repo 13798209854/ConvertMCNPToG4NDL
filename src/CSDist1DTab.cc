@@ -1,4 +1,4 @@
-#include "CSDist1DTab.hh"
+#include "../include/CSDist1DTab.hh"
 
 CSDist1DTab::CSDist1DTab(double *energyVec)
 {
@@ -17,7 +17,7 @@ CSDist1DTab::~CSDist1DTab()
     delete [] CSVec;
 }
 
-CSDist1DTab::void ExtractMCNPData(stringstream data, int count&)
+void CSDist1DTab::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -40,7 +40,7 @@ CSDist1DTab::void ExtractMCNPData(stringstream data, int count&)
 }
 
 //Set up for Cross-section data
-CSDist1DTab::void WriteG4NDLCSData(stringstream stream )
+void CSDist1DTab::WriteG4NDLCSData(stringstream &stream )
 {
     stream << std::setw(14) << std::right << CSVecSize;
     stream.precision(6);
@@ -48,17 +48,15 @@ CSDist1DTab::void WriteG4NDLCSData(stringstream stream )
 
     for(int i=0; i<CSVecSize; i++)
     {
-        if(floor(i/3)==ceil(double(i)/3))
-        {
+        if(i%3==0)
             stream << '\n';
-        }
         stream << std::setw(14) << std::right << enerVec[i+startEner-1]*1000000;
         stream << std::setw(14) << std::right << CSVec[i];
     }
     stream << '\n';
 }
 
-CSDist1DTab::void IdentifyYourSelf()
+string CSDist1DTab::IdentifyYourSelf()
 {
     return "CSDist1DTab";
 }
@@ -77,5 +75,5 @@ double CSDist1DTab::Interpolate(double x)
     if(i<0)
         i=0;
 
-    return Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]);
+    return CSDist::Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]);
 }

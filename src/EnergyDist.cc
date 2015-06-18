@@ -1,4 +1,4 @@
-#include "EnergyDist.hh"
+#include "../include/EnergyDist.hh"
 
 EnergyDist::EnergyDist()
 {

@@ -5,13 +5,23 @@
 
 #define numDistSample 200
 
+/*
+Created By: Wesley Ford June 17, 2015
+
+This class is responsible for the extraction of the energy dependant Kallbach out-going angular distribution data from MCNP
+and the writing of this data into the applicable G4NDL files.
+
+To better understand the MCNP format that this class is built to extract from please refer to MCNP5 Manual Vol III
+To better understand the G4NDL format that this class is built to write to, please refer to G4NDL Final State Decryption
+*/
+
 class AngEnDistKallbach : public AngularEnergyDist
 {
     public:
-        AngEnDistKallbach(int EnerDistStart);
+        AngEnDistKallbach(/*int EnerDistStart*/);
         virtual ~AngEnDistKallbach();
-        void ExtractMCNPData(stringstream stream, int &count);
-        void WriteG4NDLData(stringstream data);
+        void ExtractMCNPData(stringstream &stream, int &count);
+        void WriteG4NDLData(stringstream &stream);
 
         int numRegs, numIncEner, startEnerDist;
         //numRegs number of interpolation regions

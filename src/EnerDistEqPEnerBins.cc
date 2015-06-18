@@ -1,4 +1,4 @@
-#include "EnerDistEqPEnerBins.hh"
+#include "../include/EnerDistEqPEnerBins.hh"
 
 EnerDistEqPEnerBins::EnerDistEqPEnerBins()
 {
@@ -25,7 +25,7 @@ EnerDistEqPEnerBins::~EnerDistEqPEnerBins()
         delete [] outEner;
 }
 
-void EnerDistEqPEnerBins::ExtractMCNPData(stringstream stream, int &count)
+void EnerDistEqPEnerBins::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -48,7 +48,7 @@ void EnerDistEqPEnerBins::ExtractMCNPData(stringstream stream, int &count)
 
     stream >> numIncEner; count++;
     incEner = new double[numIncEner];
-    outEner = new double *[numIncEner]
+    outEner = new double *[numIncEner];
 
     for(int i=0; i<numIncEner; i++, count++)
     {
@@ -71,27 +71,29 @@ void EnerDistEqPEnerBins::ExtractMCNPData(stringstream stream, int &count)
 }
 
 //For Fission
-void EnerDistEqPEnerBins::WriteG4NDLData(stringstream data)
+void EnerDistEqPEnerBins::WriteG4NDLData(stringstream &stream)
 {
     // this is MCNP law 1
     // convert this to G4NDL theRepresentationType=1
 
-    stream << std::setw(14) << std::right << incEner.size() << numReg << '\n';
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numReg << '\n';
     for(int i=0; i<numReg; i++)
     {
-        stream << std::setw(14) << regEndPos[i] << intScheme[i];
+        stream << std::setw(14) << regEndPos[i] << std::setw(14) << std::right << intScheme[i];
     }
     stream << '\n';
-    for(int i=0; i<int(incEner.size()); i++)
+    for(int i=0; i<int(numIncEner); i++)
     {
         // note the histogram scheme is right biased, we checked
-        stream << std::setw(14) << std::right << incEner[i]*1000000 << outEner[i].size() << '\n';
+        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << numOutEnerPerInc << '\n';
         stream << std::setw(14) << std::right << 1 << '\n';
-        stream << std::setw(14) << std::right << outEner[i].size() << 1 << '\n';
+        stream << std::setw(14) << std::right << numOutEnerPerInc << std::setw(14) << std::right << 1 << '\n';
 
-        for(int j=0; j<int(outEner[i].size()); j++)
+        for(int j=0; j<int(numOutEnerPerInc); j++)
         {
-            stream << std::setw(14) << std::right << outEner[i][j]*1000000 << 1/(outEner[i].size()*(outEner[i][j+1]*1000000-outEner[i][j]*1000000)) << '\n';
+            stream << std::setw(14) << std::right << outEner[i][j]*1000000 << std::setw(14) << std::right << 1/(numOutEnerPerInc*(outEner[i][j+1]-outEner[i][j]));
+            if(j%3==0)
+                stream << '\n';
         }
     }
 }

@@ -1,4 +1,4 @@
-#include "NYield1DTab.hh"
+#include "../include/NYield1DTab.hh"
 
 NYield1DTab::NYield1DTab()
 {
@@ -36,7 +36,7 @@ NYield1DTab::~NYield1DTab()
         delete [] yield;
 }
 
-void NYield1DTab::ExtractMCNPData(stringstream stream, int &count)
+void NYield1DTab::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -74,7 +74,7 @@ void NYield1DTab::ExtractMCNPData(stringstream stream, int &count)
     }
 }
 
-void NYield1DTab::WriteG4NDLData(stringstream data)
+void NYield1DTab::WriteG4NDLData(stringstream &stream)
 {
     stream << std::setw(14) << std::right << numIncEner << '\n';
     stream << std::setw(14) << std::right << numRegs << '\n';
@@ -95,7 +95,7 @@ void NYield1DTab::WriteG4NDLData(stringstream data)
 
 void NYield1DTab::SubtractPrompt(YieldDist* promptYieldDist)
 {
-    promptYieldDist.SubtractPrompt(numIncEner, incEner, yield);
+    promptYieldDist->SubtractPrompt(numIncEner, incEner, yield);
 }
 
 void NYield1DTab::SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield)

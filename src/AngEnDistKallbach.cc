@@ -1,8 +1,8 @@
-#include "AngEnDistKallbach.hh"
+#include "../include/AngEnDistKallbach.hh"
 
-AngEnDistKallbach::AngEnDistKallbach(int EnerDistStart)
+AngEnDistKallbach::AngEnDistKallbach(/*int EnerDistStart*/)
 {
-    startEnerDist =  EnerDistStart;
+    /*startEnerDist =  EnerDistStart;*/
 }
 
 AngEnDistKallbach::~AngEnDistKallbach()
@@ -24,6 +24,13 @@ AngEnDistKallbach::~AngEnDistKallbach()
 
     for(int i=0; i<numIncEner; i++)
     {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            if(outAngProb[i][j])
+                delete [] outAngProb[i][j];
+        }
+        if(outAngProb[i])
+            delete [] outAngProb[i];
         if(outEner[i])
             delete [] outEner[i];
         if(outEnerProb[i])
@@ -36,6 +43,8 @@ AngEnDistKallbach::~AngEnDistKallbach()
             delete [] angDistSlope[i];
     }
 
+    if(outAngProb)
+        delete [] outAngProb;
     if(outEner)
         delete [] outEner;
     if(outEnerProb)
@@ -48,7 +57,7 @@ AngEnDistKallbach::~AngEnDistKallbach()
         delete [] angDistSlope;
 }
 
-void AngEnDistKallbach::ExtractMCNPData(stringstream stream, int &count)
+void AngEnDistKallbach::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -127,7 +136,7 @@ void AngEnDistKallbach::ExtractMCNPData(stringstream stream, int &count)
         outEnerSumProb[i] = new double [numPEnerPoints[i]];
         rFraction[i] = new double [numPEnerPoints[i]];
         angDistSlope[i] = new double [numPEnerPoints[i]];
-        outAngProb[i] = new double *[numIncEner];
+        outAngProb[i] = new double *[numPEnerPoints[i]];
 
         for(int j=0; j<numPEnerPoints[i]; j++, count++)
         {
@@ -155,7 +164,7 @@ void AngEnDistKallbach::ExtractMCNPData(stringstream stream, int &count)
             angDistSlope[i][j] = temp;
         }
         // create the angle probability distribution from the given function for this out-going energy
-        for(int j=0; j<numPEnerPoints[i]; j++, count++)
+        for(int j=0; j<numPEnerPoints[i]; j++)
         {
             outAngProb[i][j] = new double [numDistSample];
             for(int k=0; k<numDistSample; k++)
@@ -167,13 +176,13 @@ void AngEnDistKallbach::ExtractMCNPData(stringstream stream, int &count)
 
 }
 
-void AngEnDistKallbach::WriteG4NDLData(stringstream stream)
+void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 44
     //convert this to G4NDL DistLaw=7
     // may be able to exactly convert it to DistLaw=1
 
-     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
+     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
     {
@@ -198,7 +207,9 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream stream)
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
-                stream << std::setw(14) << std::right << outEnerProb[i][k]*outAngProb[i][k][j] << '\n';
+                stream << std::setw(14) << std::right << outEnerProb[i][k]*outAngProb[i][k][j];
+                if(k%3==0)
+                    stream << '\n';
             }
         }
     }

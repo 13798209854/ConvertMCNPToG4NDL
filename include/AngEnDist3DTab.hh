@@ -3,14 +3,24 @@
 
 #include "AngularEnergyDist.hh"
 
+/*
+Created By: Wesley Ford June 17, 2015
+
+This class is responsible for the extraction of the energy dependant tabular out-going angular distribution data from MCNP
+and the writing of this data into the applicable G4NDL files.
+
+To better understand the MCNP format that this class is built to extract from please refer to MCNP5 Manual Vol III
+To better understand the G4NDL format that this class is built to write to, please refer to G4NDL Final State Decryption
+*/
+
 
 class AngEnDist3DTab : public AngularEnergyDist
 {
     public:
-        AngEnDist3DTab(int EnerDistStart);
+        AngEnDist3DTab(/*int EnerDistStart*/);
         virtual ~AngEnDist3DTab();
-        void ExtractMCNPData(stringstream stream, int &count);
-        void WriteG4NDLData(stringstream data);
+        void ExtractMCNPData(stringstream &stream, int &count);
+        void WriteG4NDLData(stringstream &stream);
 
         int numRegs, numIncEner, startEnerDist;
         //numRegs number of interpolation regions

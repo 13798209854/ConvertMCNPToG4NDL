@@ -1,4 +1,4 @@
-#include "EnerDistWattSpec.hh"
+#include "../include/EnerDistWattSpec.hh"
 
 EnerDistWattSpec::EnerDistWattSpec()
 {
@@ -26,7 +26,7 @@ EnerDistWattSpec::~EnerDistWattSpec()
 
 }
 
-void EnerDistWattSpec::ExtractMCNPData(stringstream stream, int &count)
+void EnerDistWattSpec::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -97,34 +97,36 @@ void EnerDistWattSpec::ExtractMCNPData(stringstream stream, int &count)
 }
 
 //For Fission
-void EnerDistWattSpec::WriteG4NDLData(stringstream data)
+void EnerDistWattSpec::WriteG4NDLData(stringstream &stream)
 {
 //this is MCNP energy distribution law 11
 //convert this law to G4NDL law 11
 //we ignore the rejection energy since G4NDL does not use it
 //check the physics to make sure this is equivalent, appears to be the same except for the added coefficient in the MCNP version
 
-    stream << numIncEnerA << '\n';
-    stream << numRegsA << '\n';
+    stream << std::setw(14) << std::right << numIncEnerA << '\n';
+    stream << std::setw(14) << std::right << numRegsA << '\n';
     for(int i=0; i<numRegsA; i++)
     {
-        stream << regEndPosA[i] << intSchemeA[i] << '\n';
+        stream << std::setw(14) << std::right << regEndPosA[i] << std::setw(14) << std::right << intSchemeA[i] << '\n';
     }
 
     for(int i=0; i<numIncEnerA; i++)
     {
-        stream << incEnerA[i]*1000000 << aValues[i] << '\n';
+        stream << std::setw(14) << std::right << incEnerA[i]*1000000 << std::setw(14) << std::right << aValues[i] << '\n';
     }
 
-    stream << numIncEnerB << '\n';
-    stream << numRegsB << '\n';
+    stream << std::setw(14) << std::right << numIncEnerB << '\n';
+    stream << std::setw(14) << std::right << numRegsB << '\n';
     for(int i=0; i<numRegsB; i++)
     {
-        stream << regEndPosB[i] << intSchemeB[i] << '\n';
+        stream << std::setw(14) << std::right << regEndPosB[i] << std::setw(14) << std::right << intSchemeB[i] << '\n';
     }
 
     for(int i=0; i<numIncEnerB; i++)
     {
-        stream << incEnerB[i]*1000000 << bValues[i] << '\n';
+        stream << std::setw(14) << std::right << incEnerB[i]*1000000 << std::setw(14) << std::right << bValues[i];
+        if(i%3==0)
+            stream << '\n';
     }
 }

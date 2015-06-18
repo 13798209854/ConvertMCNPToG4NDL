@@ -1,4 +1,4 @@
-#include "CSDist.hh"
+#include "../include/CSDist.hh"
 
 CSDist::CSDist()
 {
@@ -10,8 +10,7 @@ CSDist::~CSDist()
     //dtor
 }
 
-inline double CSDist::
-Interpolate(int aScheme,
+double CSDist::Interpolate(int aScheme,
             double x, double x1, double x2, double y1, double y2) const
 {
   double result(0);
@@ -36,12 +35,8 @@ Interpolate(int aScheme,
     case 5:
       result = LogarithmicLogarithmic(x, x1, x2, y1, y2);
       break;
-    case 6:
-      result = Random(x, x1, x2, y1, y2);
-      break;
     default:
-      cout << "theScheme = "<<theScheme<<endl;
-      throw HadronicException(__FILE__, __LINE__, "CSDist::Carthesian Invalid InterpolationScheme");
+      cout << "Error: Unrecognized scheme = "<<theScheme<<endl;
       break;
   }
   return result;
@@ -103,13 +98,5 @@ LogarithmicLogarithmic(double x, double x1, double x2, double y1, double y2) con
     result = LinearLinear(std::log(x), std::log(x1), std::log(x2), std::log(y1), std::log(y2));
     result = std::exp(result);
   }
-  return result;
-}
-
-inline double CSDist::
-Random(double , double , double , double y1, double y2) const
-{
-  double result;
-  result = y1+UniformRand()*(y2-y1);
   return result;
 }

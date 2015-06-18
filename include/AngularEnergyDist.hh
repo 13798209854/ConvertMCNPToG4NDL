@@ -7,18 +7,23 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "include/ElementNames.hh"
 #include <iomanip>
+using namespace std;
+
+/*
+Created By: Wesley Ford June 17, 2015
+
+This class is the mother class for all the classes responsible for the extraction of the energy dependant out-going angular distribution data from MCNP
+*/
 
 class AngularEnergyDist
 {
     public:
         AngularEnergyDist();
         virtual ~AngularEnergyDist();
-        virtual void ExtractMCNPData(stringstream data)=0;
-        virtual void WriteG4NDLData(stringstream data)=0;
-        virtual void SetPoint(stringstream data, int &count, double incNEner)=0;
-        SetTemperature(double temp) {temperature=temp;}
+        virtual void ExtractMCNPData(stringstream &stream, int &count)=0;
+        virtual void WriteG4NDLData(stringstream &stream)=0;
+        void SetTemperature(double temp) {temperature=temp;}
 
         double Interpolate(int aScheme, double x, double x1, double x2, double y1, double y2) const;
         double Histogram(double , double , double , double y1, double ) const;

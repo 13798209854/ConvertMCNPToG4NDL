@@ -1,15 +1,15 @@
-#include "EnerDistTabLinFunc.hh"
+#include "../include/EnerDistTabLinFunc.hh"
 
-EnerDistTabLinFunc::EnerDistTabLinFunc(int EnerDistStart)
+EnerDistTabLinFunc::EnerDistTabLinFunc(/*int EnerDistStart*/)
 {
-    startEnerDist =  EnerDistStart;
+    /*startEnerDist =  EnerDistStart;*/
 }
 
 EnerDistTabLinFunc::~EnerDistTabLinFunc()
 {
     if(regEndPos)
         delete [] regEndPos;
-    if(intScheme1)
+    if(intScheme)
         delete [] intScheme;
     if(distPos)
         delete [] distPos;
@@ -36,7 +36,7 @@ EnerDistTabLinFunc::~EnerDistTabLinFunc()
         delete [] outProb;
 }
 
-void EnerDistTabLinFunc::ExtractMCNPData(stringstream stream, int &count)
+void EnerDistTabLinFunc::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -114,7 +114,7 @@ void EnerDistTabLinFunc::ExtractMCNPData(stringstream stream, int &count)
 }
 
 //For Fission
-void EnerDistTabLinFunc::WriteG4NDLData(stringstream data)
+void EnerDistTabLinFunc::WriteG4NDLData(stringstream &stream)
 {
 //this is MCNP law 22
 //there is no direct translation for this law in G4NDL but it can be made to fit theRepresentationType=1 with some assumptions
@@ -124,14 +124,14 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream data)
 //coresponding out-going energy falls with the range of the linear function.
 //then normalize the created out-going energy probability distribution
 
-    double *outEner, *outProbDist, low, high, emax=-1, emin=-1, tempLow, tempHigh, sum=0.;
+    double *outEner, *outProbDist, *outEnerLow, *outEnerHigh, low, high, emax=-1, emin=-1, tempLow, tempHigh, sum=0.;
 
     //we ignore the given interpolation scheme since MCNP ignores it and uses a histogram scheme instead
-    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << 1 << '\n'
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << 1 << '\n';
     stream << std::setw(14) << std::right << numIncEner;
     stream << std::setw(14) << std::right << 1 << '\n';
 
-    for(int i=0; i<numIncEner; i++, count++)
+    for(int i=0; i<numIncEner; i++)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
         stream << std::setw(14) << std::right << 2*numPEnerPoints[i];
@@ -139,10 +139,10 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream data)
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << 2*numPEnerPoints[i] << std::setw(14) << std::right << 2 << '\n';
 
-        outEner=new double [2*numPEnerPoints];
-        outProbDist=new double [2*numPEnerPoints];
-        outEnerLow=new double [2*numPEnerPoints];
-        outEnerHigh=new double [2*numPEnerPoints];
+        outEner=new double [2*numPEnerPoints[i]];
+        outProbDist=new double [2*numPEnerPoints[i]];
+        outEnerLow=new double [2*numPEnerPoints[i]];
+        outEnerHigh=new double [2*numPEnerPoints[i]];
 
         if(i==numIncEner-1)
         {
@@ -158,7 +158,7 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream data)
         for(int j=0; j<numPEnerPoints[i]; j++)
         {
             tempLow=outEnerMulti[i][j]*(low-outEnerOffset[i][j]);
-            tempHigh=outEnerMulti[i][j]*(high-outEnerOffset[i][j])
+            tempHigh=outEnerMulti[i][j]*(high-outEnerOffset[i][j]);
             if((emin>tempLow)||(emin==-1))
             {
                 emin=tempLow;
@@ -171,37 +171,37 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream data)
 
         for(int j=0; j<2*numPEnerPoints[i]; j++)
         {
-            outEner[j]=(emax-emin)*j/(2*numPEnerPoints[i])+(emax-emin)/(4*numPEnerPoints[i]);
-            outEnerLow[j]=(emax-emin)*j/(2*numPEnerPoints[i]);
-            outEnerHigh[j]=(emax-emin)*(j+1)/(2*numPEnerPoints[i]);
+            outEner[j]=(emax-emin)*j/(2*numPEnerPoints[i])+(emax-emin)/(4*numPEnerPoints[i])+emin;
+            outEnerLow[j]=(emax-emin)*j/(2*numPEnerPoints[i])+emin;
+            outEnerHigh[j]=(emax-emin)*(j+1)/(2*numPEnerPoints[i])+emin;
             outProbDist[j]=0;
         }
 
         for(int j=0; j<numPEnerPoints[i]; j++)
         {
             tempLow=outEnerMulti[i][j]*(low-outEnerOffset[i][j]);
-            tempHigh=outEnerMulti[i][j]*(high-outEnerOffset[i][j])
+            tempHigh=outEnerMulti[i][j]*(high-outEnerOffset[i][j]);
             for(int k=0; k<2*numPEnerPoints[i]; k++)
             {
                 if((outEnerLow[k]<tempLow)&&(outEnerHigh[k]>tempLow))
                 {
-                    outProbDist[k]+=outProb[j];
-                    sum+=outProb[j];
+                    outProbDist[k]+=outProb[i][j];
+                    sum+=outProb[i][j];
                 }
                 if((outEnerLow[k]<tempHigh)&&(outEnerHigh[k]>tempHigh))
                 {
-                    outProbDist[k]+=outProb[j];
-                    sum+=outProb[j];
+                    outProbDist[k]+=outProb[i][j];
+                    sum+=outProb[i][j];
                 }
                 if((tempLow<outEnerLow[k])&&(tempHigh>outEnerLow[k]))
                 {
-                    outProbDist[k]+=outProb[j];
-                    sum+=outProb[j];
+                    outProbDist[k]+=outProb[i][j];
+                    sum+=outProb[i][j];
                 }
                 if((tempLow<outEnerHigh[k])&&(tempHigh>outEnerHigh[k]))
                 {
-                    outProbDist[k]+=outProb[j];
-                    sum+=outProb[j];
+                    outProbDist[k]+=outProb[i][j];
+                    sum+=outProb[i][j];
                 }
             }
         }
@@ -210,12 +210,14 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream data)
         {
             outProbDist[k]/=sum;
         }
-        sum=0.
+        sum=0.;
 
         for(int j=0; j<2*numPEnerPoints[i]; j++)
         {
             stream << std::setw(14) << std::right << outEner[j]*1000000;
-            stream << std::setw(14) << std::right << outProbDist[j] << '\n';
+            stream << std::setw(14) << std::right << outProbDist[j];
+            if(j%3==0)
+                stream << '\n';
         }
         delete[] outEner;
         delete[] outProbDist;

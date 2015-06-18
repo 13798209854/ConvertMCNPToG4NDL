@@ -1,11 +1,16 @@
-#include "CSDist1DTabP.hh"
+#include "../include/CSDist1DTabP.hh"
+
+CSDist1DTabP::CSDist1DTabP()
+{
+
+}
 
 CSDist1DTabP::~CSDist1DTabP()
 {
     delete [] CSVec;
 }
 
-CSDist1DTabP::void ExtractMCNPData(stringstream data, int count&)
+void CSDist1DTabP::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -27,7 +32,7 @@ CSDist1DTabP::void ExtractMCNPData(stringstream data, int count&)
     }
 }
 
-CSDist1DTabP::void WriteG4NDLCSData(stringstream stream )
+void CSDist1DTabP::WriteG4NDLCSData(stringstream &stream )
 {
     // may have to supplement G4NDL data for this section, hopefully this format is not needed
     // ask Dr. Buijs about how to convert this section with out knowing the photon energy
@@ -43,12 +48,13 @@ CSDist1DTabP::void WriteG4NDLCSData(stringstream stream )
     {
         stream << std::setw(14) << std::right << enerCSVec[j+startEner]*1000000;
         stream << std::setw(14) << std::right << CSVec[j];
+        if(j%3==0)
+            stream << '\n';
     }
 }
 
-CSDist1DTabP::void WriteG4NDLYieldData(stringstream stream )
+void CSDist1DTabP::WriteG4NDLYieldData(stringstream &stream )
 {
-    double csNum;
     stream << std::setw(14) << std::right << CSVecSize << std::setw(14) << std::right << 1 << endl;
     stream << CSVecSize << 2 << endl;
 
@@ -59,7 +65,7 @@ CSDist1DTabP::void WriteG4NDLYieldData(stringstream stream )
     }
 }
 
-CSDist1DTabP::void IdentifyYourSelf()
+string CSDist1DTabP::IdentifyYourSelf()
 {
     return "CSDist1DTabP";
 }
@@ -78,5 +84,5 @@ double CSDist1DTabP::Interpolate(double x)
     if(i<0)
         i=0;
 
-    return Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]);
+    return CSDist::Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]);
 }

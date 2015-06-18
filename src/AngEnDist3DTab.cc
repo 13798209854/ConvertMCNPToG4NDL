@@ -1,8 +1,8 @@
-#include "AngEnDist3DTab.hh"
+#include "../include/AngEnDist3DTab.hh"
 
-AngEnDist3DTab::AngEnDist3DTab(int EnerDistStart)
+AngEnDist3DTab::AngEnDist3DTab(/*int EnerDistStart*/)
 {
-    startEnerDist =  EnerDistStart;
+    /*startEnerDist =  EnerDistStart;*/
 }
 
 AngEnDist3DTab::~AngEnDist3DTab()
@@ -76,7 +76,7 @@ AngEnDist3DTab::~AngEnDist3DTab()
         delete [] outAngSumProb;
 }
 
-void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
+void AngEnDist3DTab::ExtractMCNPData(stringstream &stream, int &count)
 {
     int intTemp;
     double temp;
@@ -107,7 +107,7 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
     outEner = new double *[numIncEner];
     outEnerProb = new double *[numIncEner];
     outEnerSumProb = new double *[numIncEner];
-    isoDist = new double *[numIncEner];
+    isoDist = new bool *[numIncEner];
     outAngDistPos = new int *[numIncEner];
     intScheme3 = new int *[numIncEner];
     numPAngPoints = new int *[numIncEner];
@@ -153,12 +153,12 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
         outEnerProb[i] = new double [numPEnerPoints[i]];
         outEnerSumProb[i] = new double [numPEnerPoints[i]];
         isoDist[i] = new bool [numPEnerPoints[i]];
-        outAngDistPos = new int [numPEnerPoints[i]];
-        intScheme3 = new int [numPEnerPoints[i]];
-        numPAngPoints = new int [numPEnerPoints[i]];
-        outAng = new double *[numPEnerPoints[i]];
-        outAngProb = new double *[numPEnerPoints[i]];
-        outAngSumProb = new double *[numPEnerPoints[i]];
+        outAngDistPos[i] = new int [numPEnerPoints[i]];
+        intScheme3[i] = new int [numPEnerPoints[i]];
+        numPAngPoints[i] = new int [numPEnerPoints[i]];
+        outAng[i] = new double *[numPEnerPoints[i]];
+        outAngProb[i] = new double *[numPEnerPoints[i]];
+        outAngSumProb[i] = new double *[numPEnerPoints[i]];
 
         for(int j=0; j<numPEnerPoints[i]; j++, count++)
         {
@@ -204,9 +204,9 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
             stream >> intTemp; count++;
             numPAngPoints[i][j] = intTemp;
 
-            outAng = new double [numPAngPoints[i][j]];
-            outAngProb = new double [numPAngPoints[i][j]];
-            outAngSumProb = new double [numPAngPoints[i][j]];
+            outAng[i][j] = new double [numPAngPoints[i][j]];
+            outAngProb[i][j] = new double [numPAngPoints[i][j]];
+            outAngSumProb[i][j] = new double [numPAngPoints[i][j]];
 
             for(int k=0; k<numPAngPoints[i][j]; k++)
             {
@@ -227,7 +227,7 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream stream, int &count)
     }
 }
 
-void AngEnDist3DTab::WriteG4NDLData(stringstream data)
+void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 61
     //convert this to G4NDL DistLaw=7
@@ -251,9 +251,9 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream data)
             angMin[i]=0;
             for(int k=0; k<numPAngPoints[i][j]; k++)
             {
-                if(outAng[i][j][k]>angMax)
+                if(outAng[i][j][k]>angMax[i])
                     angMax[i]=outAng[i][j][k];
-                if((outAng[i][j][k]<angMin)||(angMin==0))
+                if((outAng[i][j][k]<angMin[i])||(angMin[i]==0))
                     angMin[i]=outAng[i][j][k];
             }
         }
@@ -262,13 +262,13 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream data)
     for(int i=0; i<numIncEner; i++)
     {
         newNumAngPoints[i] = floor(5*sumAngPoints[i]/numPEnerPoints[i]);
-        outAngNew[i] = new double [newNumAngPoints];
-        outEnProbNew[i] = new double* [newNumAngPoints];
+        outAngNew[i] = new double [newNumAngPoints[i]];
+        outEnProbNew[i] = new double* [newNumAngPoints[i]];
 
         for(int j=0; j<newNumAngPoints[i]; j++)
         {
-            outAngNew[i][j] = (angMax[i]-angMin[i])*i/newNumAngPoints[i]+angMin[i]+(angMax[i]-angMin[i])*0.5/newNumAngPoints[i];
-            outEnProbNew[i][j] = new double* [numPEnerPoints[i]];
+            outAngNew[i][j] = (angMax[i]-angMin[i])*j/newNumAngPoints[i]+angMin[i]+(angMax[i]-angMin[i])*0.5/newNumAngPoints[i];
+            outEnProbNew[i][j] = new double [numPEnerPoints[i]];
 
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
@@ -288,7 +288,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream data)
         }
     }
 
-    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n'
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
     {
@@ -314,7 +314,9 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream data)
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
-                stream << std::setw(14) << std::right << outEnProbNew[i][j][k] << '\n';
+                stream << std::setw(14) << std::right << outEnProbNew[i][j][k];
+                if(k%3==0)
+                    stream << '\n';
             }
         }
     }
