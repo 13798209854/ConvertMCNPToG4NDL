@@ -31,22 +31,35 @@ void EnerDistEqPEnerBins::ExtractMCNPData(stringstream &stream, int &count)
     double temp;
 
     stream >> numReg; count++;
-    regEndPos = new int[numReg];
-    intScheme = new int[numReg];
-
-    for(int i=0; i<numReg; i++, count++)
+    if(numReg==0)
     {
-        stream >> intTemp;
-        regEndPos[i]=intTemp;
+        numReg=1;
+        regEndPos = new int[numReg];
+        intScheme = new int[numReg];
+
+        stream >> numIncEner; count++;
+        regEndPos[0]=numIncEner;
+        intScheme[0]=2;
+    }
+    else
+    {
+        regEndPos = new int[numReg];
+        intScheme = new int[numReg];
+
+        for(int i=0; i<numReg; i++, count++)
+        {
+            stream >> intTemp;
+            regEndPos[i]=intTemp;
+        }
+
+        for(int i=0; i<numReg; i++, count++)
+        {
+            stream >> intTemp;
+            intScheme[i]=intTemp;
+        }
+        stream >> numIncEner; count++;
     }
 
-    for(int i=0; i<numReg; i++, count++)
-    {
-        stream >> intTemp;
-        intScheme[i]=intTemp;
-    }
-
-    stream >> numIncEner; count++;
     incEner = new double[numIncEner];
     outEner = new double *[numIncEner];
 

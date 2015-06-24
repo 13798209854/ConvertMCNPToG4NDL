@@ -40,22 +40,35 @@ void NDelayConstDist::ExtractMCNPData(stringstream &stream, int &count)
 
         delConst.push_back(temp);
         numRegs.push_back(intTemp);
-        regEndPos.push_back(new int[numRegs.back()]);
-        intScheme.push_back(new int[numRegs.back()]);
-
-        for(int i=0; i<numRegs.back(); i++, count++)
+        if(numRegs.back()==0)
         {
-            stream >> intTemp;
-            regEndPos.back()[i]=intTemp;
+            numRegs.back()=1;
+            regEndPos.push_back(new int[numRegs.back()]);
+            intScheme.push_back(new int[numRegs.back()]);
+
+            stream >> intTemp; count++;
+            regEndPos.back()[0]=intTemp;
+            intScheme.back()[0]=2;
+        }
+        else
+        {
+            regEndPos.push_back(new int[numRegs.back()]);
+            intScheme.push_back(new int[numRegs.back()]);
+
+            for(int i=0; i<numRegs.back(); i++, count++)
+            {
+                stream >> intTemp;
+                regEndPos.back()[i]=intTemp;
+            }
+
+            for(int i=0; i<numRegs.back(); i++, count++)
+            {
+                stream >> intTemp;
+                intScheme.back()[i]=intTemp;
+            }
+            stream >> intTemp; count++;
         }
 
-        for(int i=0; i<numRegs.back(); i++, count++)
-        {
-            stream >> intTemp;
-            intScheme.back()[i]=intTemp;
-        }
-
-        stream >> intTemp; count++;
         numIncEner.push_back(intTemp);
         incEner.push_back(new double[numIncEner.back()]);
         prob.push_back(new double[numIncEner.back()]);

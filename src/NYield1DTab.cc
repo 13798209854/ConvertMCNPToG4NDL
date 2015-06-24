@@ -43,22 +43,35 @@ void NYield1DTab::ExtractMCNPData(stringstream &stream, int &count)
     string dummy;
 
     stream >> numRegs; count++;
-    regEndPos = new int[numRegs];
-    intScheme = new int[numRegs];
-
-    for(int i=0; i<numRegs; i++, count++)
+    if(numRegs==0)
     {
-        stream >> intTemp;
-        regEndPos[i]=intTemp;
+        numRegs=1;
+        regEndPos = new int[numRegs];
+        intScheme = new int[numRegs];
+
+        stream >> numIncEner; count++;
+        regEndPos[0]=numIncEner;
+        intScheme[0]=2;
+    }
+    else
+    {
+        regEndPos = new int[numRegs];
+        intScheme = new int[numRegs];
+
+        for(int i=0; i<numRegs; i++, count++)
+        {
+            stream >> intTemp;
+            regEndPos[i]=intTemp;
+        }
+
+        for(int i=0; i<numRegs; i++, count++)
+        {
+            stream >> intTemp;
+            intScheme[i]=intTemp;
+        }
+        stream >> numIncEner; count++;
     }
 
-    for(int i=0; i<numRegs; i++, count++)
-    {
-        stream >> intTemp;
-        intScheme[i]=intTemp;
-    }
-
-    stream >> numIncEner; count++;
     incEner = new double[numIncEner];
     yield = new double[numIncEner];
 
@@ -93,7 +106,7 @@ void NYield1DTab::WriteG4NDLData(stringstream &stream)
 
 }
 
-void NYield1DTab::SubtractPrompt(YieldDist* promptYieldDist)
+void NYield1DTab::SubtractPrompt(YieldDist* &promptYieldDist)
 {
     promptYieldDist->SubtractPrompt(numIncEner, incEner, yield);
 }
@@ -113,7 +126,7 @@ void NYield1DTab::SubtractPrompt(int totalNumIncEner, double *totalIncEner, doub
             {
                 break;
             }
-            while(regEndPos[reg]<low)
+            while(regEndPos[reg]<=low)
                 reg++;
         }
         if(low!=0)

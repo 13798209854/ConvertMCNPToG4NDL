@@ -20,22 +20,35 @@ void CSDistYieldComp::ExtractMCNPData(stringstream &stream, int &count)
 
     stream >> mtNum; count++;
     stream >> numRegs; count++;
-    regEndPos = new int[numRegs];
-    intScheme = new int[numRegs];
-
-    for(int i=0; i<numRegs; i++, count++)
+    if(numRegs==0)
     {
-        stream >> intTemp;
-        regEndPos[i]=intTemp;
+        numRegs=1;
+        regEndPos = new int[numRegs];
+        intScheme = new int[numRegs];
+
+        stream >> numIncEner; count++;
+        regEndPos[0]=numIncEner;
+        intScheme[0]=2;
+    }
+    else
+    {
+        regEndPos = new int[numRegs];
+        intScheme = new int[numRegs];
+
+        for(int i=0; i<numRegs; i++, count++)
+        {
+            stream >> intTemp;
+            regEndPos[i]=intTemp;
+        }
+
+        for(int i=0; i<numRegs; i++, count++)
+        {
+            stream >> intTemp;
+            intScheme[i]=intTemp;
+        }
+        stream >> numIncEner; count++;
     }
 
-    for(int i=0; i<numRegs; i++, count++)
-    {
-        stream >> intTemp;
-        intScheme[i]=intTemp;
-    }
-
-    stream >> numIncEner; count++;
     enerVec = new double[numIncEner];
     yieldVec = new double[numIncEner];
 
@@ -46,8 +59,8 @@ void CSDistYieldComp::ExtractMCNPData(stringstream &stream, int &count)
     }
     for(int i=0; i<numIncEner; i++, count++)
     {
-        stream >> intTemp;
-        yieldVec[i]=intTemp;
+        stream >> temp;
+        yieldVec[i]=temp;
     }
 }
 
@@ -72,7 +85,6 @@ void CSDistYieldComp::WriteG4NDLCSData(stringstream &stream )
         stream << std::setw(14) << std::right << enerVec[j]*1000000;
         for(i=csEnerStart; i<csSize+csEnerStart; i++)
         {
-            // assume average incoming neutron energy is 1eV
             if(enerCSVec[i]>enerVec[j])
             {
                 i--;
@@ -118,7 +130,7 @@ double CSDistYieldComp::Interpolate(double x)
     double csNum1, csNum2;
     for(i=0; i<numIncEner; i++)
     {
-        while(i>regEndPos[reg])
+        while(i>=regEndPos[reg])
             reg++;
         if(enerVec[i]>x)
         {
@@ -131,7 +143,6 @@ double CSDistYieldComp::Interpolate(double x)
 
     for(low=csEnerStart; low<csSize+csEnerStart; low++)
     {
-        // assume average incoming neutron energy is 1eV
         if(enerCSVec[low]>enerVec[i])
         {
             low--;
@@ -145,9 +156,8 @@ double CSDistYieldComp::Interpolate(double x)
         csIndex=0;
     csNum1 = (enerVec[i]-enerCSVec[low])*(csVec[csIndex+1]-csVec[csIndex])/(enerCSVec[low+1]-enerCSVec[low])+csVec[csIndex];
 
-    for(low=csEnerStart; low<csSize+csEnerStart; low++)
+    for(low=csEnerStart-1; low<csSize+csEnerStart-1; low++)
     {
-        // assume average incoming neutron energy is 1eV
         if(enerCSVec[low]>enerVec[i+1])
         {
             low--;

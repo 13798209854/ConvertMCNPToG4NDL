@@ -9,6 +9,7 @@ CSDist1DTab::CSDist1DTab(double *energyVec, int numCSEner)
 {
     startEner = 1;
     CSVecSize = numCSEner;
+    enerVec= energyVec;
     elastic = true;
 }
 

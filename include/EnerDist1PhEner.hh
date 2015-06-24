@@ -29,8 +29,8 @@ class EnerDist1PhEner: public EnergyDist
             else
             {
                 // assume average incoming neutron energy is 1eV
-                cout << "### Use of large energy distribution approximation" << endl;
-                return (photonEn+1*awr/(awr+1));
+                //cout << "### Use of large energy distribution approximation" << endl;
+                return (photonEn+1.0e-06*awr/(awr+1));
             }
         }
         string IdentifyYourSelf()

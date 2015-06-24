@@ -33,7 +33,7 @@ void NYieldPolyFunc::WriteG4NDLData(stringstream &stream)
     stream << '\n';
 }
 
-void NYieldPolyFunc::SubtractPrompt(YieldDist* promptYieldDist)
+void NYieldPolyFunc::SubtractPrompt(YieldDist* &promptYieldDist)
 {
     if(promptYieldDist->IdentifyYourSelf()=="NYieldPolyFunc")
     {
@@ -45,7 +45,7 @@ void NYieldPolyFunc::SubtractPrompt(YieldDist* promptYieldDist)
     }
 }
 
-void NYieldPolyFunc::SubtractPrompt(double *totalCoeff, int &totalNumCoeff)
+void NYieldPolyFunc::SubtractPrompt(double *&totalCoeff, int &totalNumCoeff)
 {
     if(totalNumCoeff<numCoeff)
     {
@@ -90,7 +90,7 @@ void NYieldPolyFunc::SubtractPrompt(int totalNumIncEner, double *totalIncEner, d
 
 }
 
-void NYieldPolyFunc::ConvertToLinDist(int *regEndPos, int &numIncEner, double *incEner, double *yield)
+void NYieldPolyFunc::ConvertToLinDist(int *regEndPos, int &numIncEner, double *&incEner, double *&yield)
 {
     int j;
     double sum, energy;

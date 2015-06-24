@@ -30,7 +30,7 @@ class CSDist1DTab: public CSDist
 
         }
         double Interpolate(double x);
-        void SetCSData(double* enerCSVec, int &csEnerStart, double* csVec, int &csSize)
+        void SetCSData(double* &enerCSVec, int &csEnerStart, double* &csVec, int &csSize)
         {
             enerCSVec=enerVec;
             csEnerStart=startEner;

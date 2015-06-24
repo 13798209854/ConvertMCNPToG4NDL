@@ -32,22 +32,35 @@ void EnerDistWattSpec::ExtractMCNPData(stringstream &stream, int &count)
     double temp;
 
     stream >> numRegsA; count++;
-    regEndPosA = new int[numRegsA];
-    intSchemeA = new int[numRegsA];
-
-    for(int i=0; i<numRegsA; i++, count++)
+    if(numRegsA==0)
     {
-        stream >> intTemp;
-        regEndPosA[i]=intTemp;
+        numRegsA=1;
+        regEndPosA = new int[numRegsA];
+        intSchemeA = new int[numRegsA];
+
+        stream >> numIncEnerA; count++;
+        regEndPosA[0]=numIncEnerA;
+        intSchemeA[0]=2;
+    }
+    else
+    {
+        regEndPosA = new int[numRegsA];
+        intSchemeA = new int[numRegsA];
+
+        for(int i=0; i<numRegsA; i++, count++)
+        {
+            stream >> intTemp;
+            regEndPosA[i]=intTemp;
+        }
+
+        for(int i=0; i<numRegsA; i++, count++)
+        {
+            stream >> intTemp;
+            intSchemeA[i]=intTemp;
+        }
+        stream >> numIncEnerA; count++;
     }
 
-    for(int i=0; i<numRegsA; i++, count++)
-    {
-        stream >> intTemp;
-        intSchemeA[i]=intTemp;
-    }
-
-    stream >> numIncEnerA; count++;
     incEnerA = new double[numIncEnerA];
     aValues = new double [numIncEnerA];
 
@@ -63,22 +76,35 @@ void EnerDistWattSpec::ExtractMCNPData(stringstream &stream, int &count)
     }
 
     stream >> numRegsB; count++;
-    regEndPosB = new int[numRegsB];
-    intSchemeB = new int[numRegsB];
-
-    for(int i=0; i<numRegsB; i++, count++)
+    if(numRegsB==0)
     {
-        stream >> intTemp;
-        regEndPosB[i]=intTemp;
+        numRegsB=1;
+        regEndPosB = new int[numRegsB];
+        intSchemeB = new int[numRegsB];
+
+        stream >> numIncEnerB; count++;
+        regEndPosB[0]=numIncEnerB;
+        intSchemeB[0]=2;
+    }
+    else
+    {
+        regEndPosB = new int[numRegsB];
+        intSchemeB = new int[numRegsB];
+
+        for(int i=0; i<numRegsB; i++, count++)
+        {
+            stream >> intTemp;
+            regEndPosB[i]=intTemp;
+        }
+
+        for(int i=0; i<numRegsB; i++, count++)
+        {
+            stream >> intTemp;
+            intSchemeB[i]=intTemp;
+        }
+        stream >> numIncEnerB; count++;
     }
 
-    for(int i=0; i<numRegsB; i++, count++)
-    {
-        stream >> intTemp;
-        intSchemeB[i]=intTemp;
-    }
-
-    stream >> numIncEnerB; count++;
     incEnerB = new double[numIncEnerB];
     bValues = new double [numIncEnerB];
 

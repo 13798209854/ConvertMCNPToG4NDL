@@ -26,7 +26,7 @@ class CSDist1DTabP: public CSDist
         {
             nCSData->SetCSData(enerCSVec, csEnerStart, csVec, csSize);
         }
-        void SetCSData(double* enerCSVec, int &csEnerStart, double* csVec, int &csSize)
+        void SetCSData(double* &enerCSVec, int &csEnerStart, double* &csVec, int &csSize)
         {
 
         }

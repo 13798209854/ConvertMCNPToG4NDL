@@ -23,10 +23,10 @@ class YieldDist
         virtual ~YieldDist();
         virtual void ExtractMCNPData(stringstream &stream, int &count)=0;
         virtual void WriteG4NDLData(stringstream &stream)=0;
-        virtual void SubtractPrompt(YieldDist* promptYieldDist)=0;
+        virtual void SubtractPrompt(YieldDist* &promptYieldDist)=0;
         virtual void SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield)=0;
-        virtual void SubtractPrompt(double *totalCoeff, int &totalNumCoeff)=0;
-        virtual void ConvertToLinDist(int *regEndPos, int &numIncEner, double *incEner, double *yield)=0;
+        virtual void SubtractPrompt(double *&totalCoeff, int &totalNumCoeff)=0;
+        virtual void ConvertToLinDist(int *regEndPos, int &numIncEner, double *&incEner, double *&yield)=0;
         virtual string IdentifyYourSelf()=0;
 
         double Interpolate(int aScheme, double x, double x1, double x2, double y1, double y2) const;
