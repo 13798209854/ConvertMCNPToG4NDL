@@ -1,8 +1,8 @@
 #include "../include/AngEnDist3DTab.hh"
 
-AngEnDist3DTab::AngEnDist3DTab(/*int EnerDistStart*/)
+AngEnDist3DTab::AngEnDist3DTab(int EnerDistStart)
 {
-    /*startEnerDist =  EnerDistStart;*/
+    startEnerDist =  EnerDistStart;
 }
 
 AngEnDist3DTab::~AngEnDist3DTab()
@@ -197,7 +197,7 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream &stream, int &count)
         {
             if(outAngDistPos[i][j]>0)
             {
-                for(;count<(startEnerDist+outAngDistPos[i][j]); count++)
+                for(;count<(startEnerDist+outAngDistPos[i][j]-1); count++)
                 {
                     stream >> dummy;
                 }

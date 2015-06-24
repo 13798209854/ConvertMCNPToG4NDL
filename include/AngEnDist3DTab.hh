@@ -17,7 +17,7 @@ To better understand the G4NDL format that this class is built to write to, plea
 class AngEnDist3DTab : public AngularEnergyDist
 {
     public:
-        AngEnDist3DTab(/*int EnerDistStart*/);
+        AngEnDist3DTab(int EnerDistStart);
         virtual ~AngEnDist3DTab();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);

@@ -23,7 +23,7 @@ class AngEnDistKallbach : public AngularEnergyDist
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
 
-        int numRegs, numIncEner, startEnerDist;
+        int numRegs, numIncEner /*startEnerDist*/;
         //numRegs number of interpolation regions
         //numIncEner number of incoming neutron energy
         int *regEndPos, *intScheme1, *intScheme2, *distPos, *numPEnerPoints, *numDiscreteEnerPoints;

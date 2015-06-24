@@ -22,7 +22,7 @@ class AngEnDistLab3DTab : public AngularEnergyDist
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
 
-        int numRegs, numIncEner, startEnerDist;
+        int numRegs, numIncEner /*startEnerDist*/;
         int *regEndPos, *intScheme1, *intScheme2, *outAngDistPos, *numPAngPoints;
         double *incEner; // contains incoming neutron energy
         double **outAng;

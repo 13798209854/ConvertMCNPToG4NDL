@@ -53,7 +53,7 @@ using namespace std;
 #include "include/NYield1DTab.hh"
 #include "include/NYieldPolyFunc.hh"
 
-#define numProcess 35
+#define numProcess 34
 
 int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS, double &fileCount);
 
@@ -296,7 +296,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //for the following arrays, the indicies 0,1,2,3 correspond to elastic, capture, fission and inelastic respectively
     //location arrays are set to -1 to show that the data has not been set
     // this array sets the order of the processes, must be manually enetered
-    int MTRList[numProcess]={2,102,18,4,5,11,16,17,22,23,24,25,28,29,32,33,34,113,37,41,42,44,112,103,104,105,106,107,108,111,112,113,115,116,117};
+    int MTRList[numProcess]={2,102,18,4,5,11,16,17,22,23,24,25,28,29,32,33,34,37,41,42,44,45,103,104,105,106,107,108,111,112,113,115,116,117};
     int MTRListPos[numProcess]; //position of the reaction MT in MT list
     for(int i=0; i<numProcess; i++)
     {
@@ -443,6 +443,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //### in this section we extract incoming neutron energy, cross-section, neutron yield, and reaction Q-value data
 
     //Extract the ESZ Block to get the main incoming neutron energy grid and elastic cross-section
+    if(isoName=="4_9_Beryllium")
+    {
+        cout << "stop here" << endl;
+    }
     fileCount+=92;
     for(;count<startEnerTable; count++)
     {
@@ -562,6 +566,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         dNTotalYieldDist->ExtractMCNPData(stream, count);
     }
 
+    if(isoName=="5_10_Boron")
+    {
+        cout << "stop here" << endl;
+    }
     //Extract the MTR block to determine reaction ordering
     if(numReactions!=0)
     {
@@ -654,6 +662,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
             stream >> dummy;
         }
 
+        if(isoName=="4_9_Beryllium")
+        {
+            cout << "stop here" << endl;
+        }
         for(int i=1; i<numProcess; i++)
         {
             if(MTROrder[i]>0)
@@ -699,6 +711,11 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     MakeCSDataFile(outDirNameCSProc[extractOrder[i]]+isoName, MTRList[extractOrder[i]], nCSVec[extractOrder[i]], ascii);
             }
         }
+    }
+
+    if(isoName=="4_9_Beryllium")
+    {
+        cout << "stop here" << endl;
     }
 
     if(onlyCS)
@@ -935,7 +952,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
 
         for(int i=1; i<numProcess; i++)
         {
-            if((MTROrder[i]>0)&&(TYRList[i]!=0))
+            if((MTROrder[i]>0)&&(TYRList[MTROrder[i]]!=0))
             {
                 for(;count<MTRListPos[MTROrder[i]]+startLDLWBlock; count++)
                 {
@@ -994,6 +1011,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 if(floor(temp)!=ceil(temp))
                 {
                 //we are part way through law 61 when this occurs, we must be under counting somewhere back in the angular distribution data
+                    cout << "stop here" << endl;
+                }
+                if(isoName=="4_9_Beryllium")
+                {
                     cout << "stop here" << endl;
                 }
                 intTemp=int(temp);
@@ -1092,7 +1113,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     angEnDist[extractOrder[i]].push_back(new AngEnDistKallbach());
 
                 else if(enDisLaw[extractOrder[i]].back()==61)
-                    angEnDist[extractOrder[i]].push_back(new AngEnDist3DTab());
+                    angEnDist[extractOrder[i]].push_back(new AngEnDist3DTab(startDLWBlock));
 
                 else if(enDisLaw[extractOrder[i]].back()==66)
                     angEnDist[extractOrder[i]].push_back(new AngEnDistNBody());
@@ -1159,7 +1180,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
 
     vector<int> MTRPList;// this array sets the order of the processes
     vector<int> MTRPListPos; //position of the reaction MT in MT list
-    int lastMTRPosP=0;
 
     if(numPReactions!=0)
     {
@@ -1185,7 +1205,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     {
                         MTRPList.push_back(index);
                         MTRPListPos.push_back(i);
-                        lastMTRPosP=i;
                         break;
                     }
                 }
@@ -1615,7 +1634,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     angEnDistP[extractOrderP[i]].push_back(new AngEnDistKallbach());
 
                 else if(enDisLawP[extractOrderP[i]].back()==61)
-                    angEnDistP[extractOrderP[i]].push_back(new AngEnDist3DTab());
+                    angEnDistP[extractOrderP[i]].push_back(new AngEnDist3DTab(startDLWPBlock));
 
                 else if(enDisLawP[extractOrderP[i]].back()==66)
                     angEnDistP[extractOrderP[i]].push_back(new AngEnDistNBody());
@@ -1843,7 +1862,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     angEnDistND.push_back(new AngEnDistKallbach());
 
                 else if(enDisLawND.back()==61)
-                    angEnDistND.push_back(new AngEnDist3DTab());
+                    angEnDistND.push_back(new AngEnDist3DTab(startDNEDBlock));
 
                 else if(enDisLawND.back()==66)
                     angEnDistND.push_back(new AngEnDistNBody());

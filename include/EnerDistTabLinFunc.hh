@@ -25,7 +25,7 @@ class EnerDistTabLinFunc : public EnergyDist
             return "EnerDistTabLinFunc";
         }
 
-        int numRegs, numIncEner, startEnerDist;
+        int numRegs, numIncEner /*startEnerDist*/;
         //numRegs number of interpolation regions
         //numIncEner number of incoming neutron energy
         int *regEndPos, *intScheme, *distPos, *numPEnerPoints;
