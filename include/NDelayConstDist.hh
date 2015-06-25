@@ -23,12 +23,12 @@ To better understand the G4NDL format that this class is built to write to, plea
 class NDelayConstDist
 {
     public:
-        NDelayConstDist(int tableEndPos);
+        NDelayConstDist(int numDNFam);
         virtual ~NDelayConstDist();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
 
-        int tabEndPos;
+        int numDNPrecursorFam;
         vector <int> numRegs, numIncEner;
         vector <double> delConst;
         vector <int*> regEndPos, intScheme;

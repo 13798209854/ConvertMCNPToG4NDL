@@ -71,8 +71,8 @@ void EnerDistWattSpec::ExtractMCNPData(stringstream &stream, int &count)
     }
     for(int i=0; i<numIncEnerA; i++, count++)
     {
-        stream >> intTemp;
-        aValues[i]=intTemp;
+        stream >> temp;
+        aValues[i]=temp;
     }
 
     stream >> numRegsB; count++;
@@ -115,8 +115,8 @@ void EnerDistWattSpec::ExtractMCNPData(stringstream &stream, int &count)
     }
     for(int i=0; i<numIncEnerB; i++, count++)
     {
-        stream >> intTemp;
-        bValues[i]=intTemp;
+        stream >> temp;
+        bValues[i]=temp;
     }
 
     stream >> rejectEner; count++;

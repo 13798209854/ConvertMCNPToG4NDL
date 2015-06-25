@@ -73,7 +73,7 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
                         vector<int> enDisLawND, vector<int> enDisNumLawApplNRegND, vector<int> enDisNumLawApplNEnND, vector<int*> enDisSchemeVecND, vector<int*> enDisRangeVecND,
                         vector<double*> enDisEnApplVecND, vector<double*> enDisProbApplVecND, vector<EnergyDist*> enerDistND, double *reacQValue, int *numAngEner, vector<AngularDist*> *angDist,
                         bool *angDistInEnDistFlag, CSDist **pCSVec, int *TYRList, bool promptYieldFlag, bool totalYieldFlag, YieldDist *dNPromptYieldDist, YieldDist *dNTotalYieldDist,
-                        YieldDist *dNYield, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP, vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP,
+                        YieldDist *dNYield, NDelayConstDist *nDelConst, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP, vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP,
                         vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP, vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP, vector<EnergyDist*> *enerDistP,
                         vector<int> MTRPList, double **energyAngVecP, bool ascii);
 
@@ -117,10 +117,12 @@ void SetDataStream( string, std::stringstream&, bool);
 // X make sure that region positions are set properly (they should be the vector index + 1)
 // X add comments to major sections of the code
 // X Format the output so that it is properly spaced
+// X add warnings to the code
+// X Check NU block extraction, unclear what XSS(JXS(2)) means versus JXS(2)
 
-// add warnings to the code
+// Check photon enegy dist extraction in G$NDL and make sure that our approximation of mixing them is right
+// Check the delayed neutron energy distribution weight vector and see if we need to multiply it by the delayed group weight
 // optimize data usage by only passing the sections of data containers and arrays needed within a particular function
-// Check NU block extraction, unclear what XSS(JXS(2)) means versus JXS(2)
 // do a final general sweep of the code
 // parrallelize code
 
@@ -196,6 +198,7 @@ int main(int argc, char **argv)
                 if(string(ent->d_name).substr(0, 5)==libName)
                 {
                     fileName=inFileName+ent->d_name;
+                    cout << "Opening file: " << fileName << endl;
                     // Gets data from the file and stores it into a data stream
                     GetDataStream(fileName, stream);
                     while(stream)
@@ -226,6 +229,7 @@ int main(int argc, char **argv)
     else
     {
         // Gets data from the file and stores it into a data stream
+        cout << "Opening file: " << inFileName << endl;
         GetDataStream(inFileName, stream);
         lib = inFileName[int(inFileName.length()-3)];
 
@@ -443,10 +447,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //### in this section we extract incoming neutron energy, cross-section, neutron yield, and reaction Q-value data
 
     //Extract the ESZ Block to get the main incoming neutron energy grid and elastic cross-section
-    if(isoName=="4_9_Beryllium")
-    {
-        cout << "stop here" << endl;
-    }
     fileCount+=92;
     for(;count<startEnerTable; count++)
     {
@@ -474,7 +474,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //have not iterated through this section yet
     YieldDist *dNPromptYieldDist=NULL;
     YieldDist *dNTotalYieldDist=NULL;
-    if(startNUBlock>0)
+    int startTotalYield=0;
+    if(startNUBlock!=0)
     {
         if((count+numCSEner)!=startNUBlock)
         {
@@ -485,11 +486,45 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         {
             stream >> dummy;
         }
-        //###Check this: if the delayed neutron yield exists, assume the NU block contains the prompt yield
-        (startDelayedNUBlock!=0) ? promptYieldFlag=true : totalYieldFlag=true;
-
-        if(promptYieldFlag)
+        stream >> startTotalYield; count++;
+        if(startTotalYield>0)
         {
+            yieldDistType=startTotalYield;
+            //###Check this: if the delayed neutron yield exists, assume the NU block contains the prompt yield
+            (startDelayedNUBlock!=0) ? promptYieldFlag=true : totalYieldFlag=true;
+
+            if(promptYieldFlag)
+            {
+                if(yieldDistType==1)
+                {
+                    dNPromptYieldDist = new NYieldPolyFunc;
+                }
+                else
+                {
+                    dNPromptYieldDist = new NYield1DTab;
+                }
+
+                dNPromptYieldDist->ExtractMCNPData(stream, count);
+            }
+            else
+            {
+                if(yieldDistType==1)
+                {
+                    dNTotalYieldDist = new NYieldPolyFunc;
+                }
+                else
+                {
+                    dNTotalYieldDist = new NYield1DTab;
+                }
+
+                dNTotalYieldDist->ExtractMCNPData(stream, count);
+            }
+
+        }
+        else if(startTotalYield<0)
+        {
+            promptYieldFlag=true;
+
             stream >> yieldDistType; count++;
             if(yieldDistType==1)
             {
@@ -499,11 +534,19 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
             {
                 dNPromptYieldDist = new NYield1DTab;
             }
-
             dNPromptYieldDist->ExtractMCNPData(stream, count);
-        }
-        else
-        {
+
+            if(count!=(startNUBlock-startTotalYield+1))
+            {
+                cout << "Error: counter is off at the location of total neutron yield data for isotope " << isoName << endl;
+                cout << "Count= " << count << " should be equal to " << (-2*startNUBlock+1) << endl;
+            }
+            for(;count<(startNUBlock-startTotalYield+1); count++)
+            {
+                stream >> dummy;
+            }
+
+            totalYieldFlag=true;
             stream >> yieldDistType; count++;
             if(yieldDistType==1)
             {
@@ -513,63 +556,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
             {
                 dNTotalYieldDist = new NYield1DTab;
             }
-
             dNTotalYieldDist->ExtractMCNPData(stream, count);
         }
-
-    }
-    else if(startNUBlock<0)
-    {
-        // check this when running code, the MCNP manual says startNUBlock with out -1* but we assume this is a typo
-        if(count>(-1*startNUBlock+1))
-        {
-            cout << "Error: counter is off at the location of prompt neutron yield data for isotope " << isoName << endl;
-            cout << "Count= " << count << " should be less than equal to " << (-1*startNUBlock+1) << endl;
-        }
-        for(;count<(-1*startNUBlock+1); count++)
-        {
-            stream >> dummy;
-        }
-        promptYieldFlag=true;
-
-        stream >> yieldDistType; count++;
-        if(yieldDistType==1)
-        {
-            dNPromptYieldDist = new NYieldPolyFunc;
-        }
-        else
-        {
-            dNPromptYieldDist = new NYield1DTab;
-        }
-        dNPromptYieldDist->ExtractMCNPData(stream, count);
-
-        if(count>(-2*startNUBlock+1))
-        {
-            cout << "Error: counter is off at the location of total neutron yield data for isotope " << isoName << endl;
-            cout << "Count= " << count << " should be less than equal to " << (-2*startNUBlock+1) << endl;
-        }
-        for(;count<(-2*startNUBlock+1); count++)
-        {
-            stream >> dummy;
-        }
-
-        totalYieldFlag=true;
-        stream >> yieldDistType; count++;
-        if(yieldDistType==1)
-        {
-            dNTotalYieldDist = new NYieldPolyFunc;
-        }
-        else
-        {
-            dNTotalYieldDist = new NYield1DTab;
-        }
-        dNTotalYieldDist->ExtractMCNPData(stream, count);
     }
 
-    if(isoName=="5_10_Boron")
-    {
-        cout << "stop here" << endl;
-    }
     //Extract the MTR block to determine reaction ordering
     if(numReactions!=0)
     {
@@ -662,10 +652,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
             stream >> dummy;
         }
 
-        if(isoName=="4_9_Beryllium")
-        {
-            cout << "stop here" << endl;
-        }
         for(int i=1; i<numProcess; i++)
         {
             if(MTROrder[i]>0)
@@ -711,11 +697,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     MakeCSDataFile(outDirNameCSProc[extractOrder[i]]+isoName, MTRList[extractOrder[i]], nCSVec[extractOrder[i]], ascii);
             }
         }
-    }
-
-    if(isoName=="4_9_Beryllium")
-    {
-        cout << "stop here" << endl;
     }
 
     if(onlyCS)
@@ -828,10 +809,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         }
         stream >> intTemp; count++;
         numAngEner[extractOrder[i]]=intTemp;
-        if(numAngEner[extractOrder[i]]==0)
-        {
-            cout << "stop here" << endl;
-        }
+
         energyAngVec[extractOrder[i]] = new double[numAngEner[extractOrder[i]]];
         for(int j=0; j<numAngEner[extractOrder[i]]; j++, count++)
         {
@@ -1027,10 +1005,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 //we are part way through law 61 when this occurs, we must be under counting somewhere back in the angular distribution data
                     cout << "stop here" << endl;
                 }
-                if(isoName=="4_9_Beryllium")
-                {
-                    cout << "stop here" << endl;
-                }
                 intTemp=int(temp);
                 enDisLaw[extractOrder[i]].push_back(intTemp);
                 stream >> intTemp; count++;
@@ -1173,6 +1147,213 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         }
     }
 
+    //### Now we extract the delayed info
+
+    //Extract the DNU block to get the delayed neutron yield data
+    NYield1DTab *dNYield=NULL;
+    NDelayConstDist* nDelConst=NULL;
+    if(startDelayedNUBlock!=0)
+    {
+        if(count>startDelayedNUBlock)
+        {
+            cout << "Error: counter is off at the start of the DNU Block for isotope " << isoName << endl;
+            cout << "Count= " << count << " should be less than equal to " << startDelayedNUBlock << endl;
+        }
+        for(;count<(startDelayedNUBlock); count++)
+        {
+            stream >> dummy;
+        }
+        stream >> dummy; count ++;
+
+        dNYield = new NYield1DTab();
+        dNYield->ExtractMCNPData(stream, count);
+
+        nDelConst = new NDelayConstDist(numDNPrecursorFam);
+        nDelConst->ExtractMCNPData(stream, count);
+    }
+
+    //### In this section we extract the delayed neutron energy distribution data
+
+    //Extract the DNEDL and DNED blocks to get the delayed neutron energy distribution data
+    int *dNEnDistPos=NULL;
+    vector<int> enDisLawND, enDisNumLawApplNRegND, enDisNumLawApplNEnND;
+    vector<int*> enDisSchemeVecND, enDisRangeVecND;
+    vector<double*> enDisEnApplVecND, enDisProbApplVecND;
+    vector<EnergyDist*> enerDistND;
+    vector<AngularEnergyDist*> angEnDistND;
+    if(startDNEDLBlock!=0)
+    {
+        if(count>startDNEDLBlock)
+        {
+            cout << "Error: counter is off at the start of the DNEDL Block for isotope " << isoName << endl;
+            cout << "Count= " << count << " should be less than equal to " << startDNEDLBlock << endl;
+        }
+        for(;count<(startDNEDLBlock); count++)
+        {
+            stream >> dummy;
+        }
+
+        dNEnDistPos = new int [numDNPrecursorFam];
+        for(int i=0; i<numDNPrecursorFam; i++)
+        {
+            stream >> dNEnDistPos[i]; count++;
+        }
+
+        for(int i=0; i<numDNPrecursorFam; i++)
+        {
+            if(dNEnDistPos[i]!=-1)
+            {
+                if(count>(startDNEDBlock+dNEnDistPos[i]-1))
+                {
+                    cout << "Error: counter is off at the location of the delayed neutron energy distribution data for isotope " << isoName << endl;
+                    cout << "Count= " << count << " should be less than equal to " << (startDNEDBlock+dNEnDistPos[i]-1) << endl;
+                }
+                for(;count<(startDNEDBlock+dNEnDistPos[i]-1); count++)
+                {
+                    stream >> dummy;
+                }
+
+                /*do
+                {*/
+                    stream >> nextLawPos >> intTemp >> enDisLawDataPos; count=count+3;
+                    enDisLawND.push_back(intTemp);
+                    stream >> intTemp; count++;
+                    enDisNumLawApplNRegND.push_back(intTemp);
+
+                    if(enDisNumLawApplNRegND.back()==0)
+                    {
+                        enDisNumLawApplNRegND.back()=1;
+                        enDisSchemeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
+                        enDisRangeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
+
+                        stream >> intTemp; count++;
+                        enDisRangeVecND.back()[0]=intTemp;
+                        enDisSchemeVecND.back()[0]=2;
+                    }
+                    else
+                    {
+                        enDisSchemeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
+                        enDisRangeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
+
+                        for(int j=0; j<enDisNumLawApplNRegND.back(); j++, count++)
+                        {
+                            stream >> intTemp;
+                            (enDisRangeVecND.back())[j]=intTemp;
+                        }
+
+                        for(int j=0; j<enDisNumLawApplNRegND.back(); j++, count++)
+                        {
+                            stream >> intTemp;
+                            (enDisSchemeVecND.back())[j]=intTemp;
+                        }
+                        stream >> intTemp; count++;
+                    }
+
+                    enDisNumLawApplNEnND.push_back(intTemp);
+
+                    enDisEnApplVecND.push_back(new double [enDisNumLawApplNEnND.back()]);
+                    enDisProbApplVecND.push_back(new double [enDisNumLawApplNEnND.back()]);
+
+                    for(int j=0; j<enDisNumLawApplNEnND.back(); j++, count++)
+                    {
+                        stream >> temp;
+                        (enDisEnApplVecND.back())[j]=temp;
+                    }
+
+                    for(int j=0; j<enDisNumLawApplNEnND.back(); j++, count++)
+                    {
+                        stream >> temp;
+                        (enDisProbApplVecND.back())[j]=temp;
+                    }
+
+                    if(count>(enDisLawDataPos+startDNEDBlock-1))
+                    {
+                        cout << "Error: counter is off at the location of delayed neutron energy distribution data for isotope " << isoName << endl;
+                        cout << "Count= " << count << " should be less than equal to " << (enDisLawDataPos+startDNEDBlock-1) << endl;
+                    }
+                    for(;count<(enDisLawDataPos+startDNEDBlock-1); count++)
+                    {
+                        stream >> dummy;
+                    }
+                    // Now we extract the data depending on the format of the law using a different class for each distinct case
+                    // Don't have to worry about energy ordering of the laws, the law accuracy probability
+                    // ensures that the law will only be used in the right energy regime.
+
+                    if(enDisLawND.back()==1)
+                        enerDistND.push_back(new EnerDistEqPEnerBins());
+
+                    else if(enDisLawND.back()==3)
+                        enerDistND.push_back(new EnerDistLevScat((enDisEnApplVecND.back())[0], (enDisEnApplVecND.back())[enDisNumLawApplNEnND.back()-1]));
+
+                    else if(enDisLawND.back()==4)
+                        enerDistND.push_back(new EnerDistConTab());
+
+                    else if(enDisLawND.back()==5)
+                        enerDistND.push_back(new EnerDistGenEvapSpec());
+
+                    else if(enDisLawND.back()==7)
+                        enerDistND.push_back(new EnerDistMaxwellFisSpec());
+
+                    else if(enDisLawND.back()==9)
+                        enerDistND.push_back(new EnerDistEvapSpec());
+
+                    else if(enDisLawND.back()==11)
+                        enerDistND.push_back(new EnerDistWattSpec());
+
+                    else if(enDisLawND.back()==22)
+                        enerDistND.push_back(new EnerDistTabLinFunc());
+
+                    else if(enDisLawND.back()==24)
+                        enerDistND.push_back(new EnerDistTabMulti());
+
+                    else if(enDisLawND.back()==44)
+                        angEnDistND.push_back(new AngEnDistKallbach());
+
+                    else if(enDisLawND.back()==61)
+                        angEnDistND.push_back(new AngEnDist3DTab(startDNEDBlock));
+
+                    else if(enDisLawND.back()==66)
+                        angEnDistND.push_back(new AngEnDistNBody());
+
+                    else if(enDisLawND.back()==67)
+                        angEnDistND.push_back(new AngEnDistLab3DTab());
+                    else
+                    {
+                        cout << "\n### Error: Energy law not recognized! ###" << endl;
+                        if((count>(nextLawPos+startDNEDBlock-1))&&(nextLawPos!=0))
+                        {
+                            cout << "Error: counter is off at the location of delayed neutron energy distribution data for isotope " << isoName << endl;
+                            cout << "Count= " << count << " should be less than equal to " << (nextLawPos+startDNEDBlock-1) << endl;
+                        }
+                        for(;count<(nextLawPos+startDNEDBlock-1); count++)
+                        {
+                            stream >> dummy;
+                        }
+                        continue;
+                    }
+
+                    if(enDisLawND.back()<44)
+                        enerDistND.back()->ExtractMCNPData(stream, count);
+
+                    else
+                        angEnDistND.back()->ExtractMCNPData(stream, count);
+
+                    // go to next law position
+                    if((count>(nextLawPos+startDNEDBlock-1))&&(nextLawPos!=0))
+                    {
+                        cout << "Error: counter is off at the location of delayed neutron energy distribution data for isotope " << isoName << endl;
+                        cout << "Count= " << count << " should be less than equal to " << (nextLawPos+startDNEDBlock-1) << endl;
+                    }
+                    for(;count<(nextLawPos+startDNEDBlock-1); count++)
+                    {
+                        stream >> dummy;
+                    }
+                /*}
+                while(nextLawPos>0);*/
+            }
+        }
+    }
+
     //### Extract photon data, follows same format as the neutron data above, except for a few minor differences
     // Probably only one energy distribution per photon production reaction, don't need vector containers
 
@@ -1285,10 +1466,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     extractOrderP[j] = index;
                 }
             }
-        }
-        if(isoName=="7_14_Nitrogen")
-        {
-            cout << "stop here" << endl;
         }
 
         int MTRIndex=0;
@@ -1557,13 +1734,13 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     enDisSchemeVecP[extractOrderP[i]].push_back(new int [enDisNumLawApplNRegP[extractOrderP[i]].back()]);
                     enDisRangeVecP[extractOrderP[i]].push_back(new int [enDisNumLawApplNRegP[extractOrderP[i]].back()]);
 
-                    for(int j=0; j<enDisNumLawApplNReg[extractOrder[i]].back(); j++, count++)
+                    for(int j=0; j<enDisNumLawApplNRegP[extractOrderP[i]].back(); j++, count++)
                     {
                         stream >> intTemp;
                         (enDisRangeVecP[extractOrderP[i]].back())[j]=intTemp;
                     }
 
-                    for(int j=0; j<enDisNumLawApplNReg[extractOrder[i]].back(); j++, count++)
+                    for(int j=0; j<enDisNumLawApplNRegP[extractOrderP[i]].back(); j++, count++)
                     {
                         stream >> intTemp;
                         (enDisSchemeVecP[extractOrderP[i]].back())[j]=intTemp;
@@ -1680,7 +1857,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     stream >> dummy;
                 }
             }
-            //this assumes that the energy distribution data collection is terminated when nextLawPos=0, may not be true check
             while(nextLawPos>0);
         }
     }
@@ -1712,201 +1888,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     }
     */
 
-    //### Now we extract the delayed info
 
-    //Extract the DNU block to get the delayed neutron yield data
-    NYield1DTab *dNYield=NULL;
-    if(startDelayedNUBlock!=0)
-    {
-        if(count>startDelayedNUBlock)
-        {
-            cout << "Error: counter is off at the start of the DNU Block for isotope " << isoName << endl;
-            cout << "Count= " << count << " should be less than equal to " << startDelayedNUBlock << endl;
-        }
-        for(;count<(startDelayedNUBlock); count++)
-        {
-            stream >> dummy;
-        }
-        stream >> dummy; count ++;
-
-        dNYield = new NYield1DTab();
-        dNYield->ExtractMCNPData(stream, count);
-    }
-
-    //### In this section we extract the delayed neutron energy distribution data
-
-    //Extract the DNEDL and DNED blocks to get the delayed neutron energy distribution data
-    int dNEnDistPos;
-    vector<int> enDisLawND, enDisNumLawApplNRegND, enDisNumLawApplNEnND;
-    vector<int*> enDisSchemeVecND, enDisRangeVecND;
-    vector<double*> enDisEnApplVecND, enDisProbApplVecND;
-    vector<EnergyDist*> enerDistND;
-    vector<AngularEnergyDist*> angEnDistND;
-    if(startDNEDLBlock!=0)
-    {
-        if(count>startDNEDLBlock)
-        {
-            cout << "Error: counter is off at the start of the DNEDL Block for isotope " << isoName << endl;
-            cout << "Count= " << count << " should be less than equal to " << startDNEDLBlock << endl;
-        }
-        for(;count<(startDNEDLBlock); count++)
-        {
-            stream >> dummy;
-        }
-        stream >> dNEnDistPos; count ++;
-
-        if(dNEnDistPos!=-1)
-        {
-            if(count>(startDNEDBlock+dNEnDistPos-1))
-            {
-                cout << "Error: counter is off at the location of the delayed neutron energy distribution data for isotope " << isoName << endl;
-                cout << "Count= " << count << " should be less than equal to " << (startDNEDBlock+dNEnDistPos-1) << endl;
-            }
-            for(;count<(startDNEDBlock+dNEnDistPos-1); count++)
-            {
-                stream >> dummy;
-            }
-
-            do
-            {
-                stream >> nextLawPos >> intTemp >> enDisLawDataPos; count=count+3;
-                enDisLawND.push_back(intTemp);
-                stream >> intTemp; count++;
-                enDisNumLawApplNRegND.push_back(intTemp);
-
-                if(enDisNumLawApplNRegND.back()==0)
-                {
-                    enDisNumLawApplNRegND.back()=1;
-                    enDisSchemeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
-                    enDisRangeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
-
-                    stream >> intTemp; count++;
-                    enDisRangeVecND.back()[0]=intTemp;
-                    enDisSchemeVecND.back()[0]=2;
-                }
-                else
-                {
-                    enDisSchemeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
-                    enDisRangeVecND.push_back(new int [enDisNumLawApplNRegND.back()]);
-
-                    for(int j=0; j<enDisNumLawApplNRegND.back(); j++, count++)
-                    {
-                        stream >> intTemp;
-                        (enDisRangeVecND.back())[j]=intTemp;
-                    }
-
-                    for(int j=0; j<enDisNumLawApplNRegND.back(); j++, count++)
-                    {
-                        stream >> intTemp;
-                        (enDisSchemeVecND.back())[j]=intTemp;
-                    }
-                    stream >> intTemp; count++;
-                }
-
-                enDisNumLawApplNEnND.push_back(intTemp);
-
-                enDisEnApplVecND.push_back(new double [enDisNumLawApplNEnND.back()]);
-                enDisProbApplVecND.push_back(new double [enDisNumLawApplNEnND.back()]);
-
-                for(int j=0; j<enDisNumLawApplNEnND.back(); j++, count++)
-                {
-                    stream >> temp;
-                    (enDisEnApplVecND.back())[j]=temp;
-                }
-
-                for(int j=0; j<enDisNumLawApplNEnND.back(); j++, count++)
-                {
-                    stream >> temp;
-                    (enDisProbApplVecND.back())[j]=temp;
-                }
-
-                if(count>(enDisLawDataPos+startDNEDBlock-1))
-                {
-                    cout << "Error: counter is off at the location of delayed neutron energy distribution data for isotope " << isoName << endl;
-                    cout << "Count= " << count << " should be less than equal to " << (enDisLawDataPos+startDNEDBlock-1) << endl;
-                }
-                for(;count<(enDisLawDataPos+startDNEDBlock-1); count++)
-                {
-                    stream >> dummy;
-                }
-                // Now we extract the data depending on the format of the law using a different class for each distinct case
-                // Don't have to worry about energy ordering of the laws, the law accuracy probability
-                // ensures that the law will only be used in the right energy regime.
-
-                if(enDisLawND.back()==1)
-                    enerDistND.push_back(new EnerDistEqPEnerBins());
-
-                else if(enDisLawND.back()==3)
-                    enerDistND.push_back(new EnerDistLevScat((enDisEnApplVecND.back())[0], (enDisEnApplVecND.back())[enDisNumLawApplNEnND.back()-1]));
-
-                else if(enDisLawND.back()==4)
-                    enerDistND.push_back(new EnerDistConTab());
-
-                else if(enDisLawND.back()==5)
-                    enerDistND.push_back(new EnerDistGenEvapSpec());
-
-                else if(enDisLawND.back()==7)
-                    enerDistND.push_back(new EnerDistMaxwellFisSpec());
-
-                else if(enDisLawND.back()==9)
-                    enerDistND.push_back(new EnerDistEvapSpec());
-
-                else if(enDisLawND.back()==11)
-                    enerDistND.push_back(new EnerDistWattSpec());
-
-                else if(enDisLawND.back()==22)
-                    enerDistND.push_back(new EnerDistTabLinFunc());
-
-                else if(enDisLawND.back()==24)
-                    enerDistND.push_back(new EnerDistTabMulti());
-
-                else if(enDisLawND.back()==44)
-                    angEnDistND.push_back(new AngEnDistKallbach());
-
-                else if(enDisLawND.back()==61)
-                    angEnDistND.push_back(new AngEnDist3DTab(startDNEDBlock));
-
-                else if(enDisLawND.back()==66)
-                    angEnDistND.push_back(new AngEnDistNBody());
-
-                else if(enDisLawND.back()==67)
-                    angEnDistND.push_back(new AngEnDistLab3DTab());
-                else
-                {
-                    cout << "\n### Error: Energy law not recognized! ###" << endl;
-                    if((count>(nextLawPos+startDNEDBlock-1))&&(nextLawPos!=0))
-                    {
-                        cout << "Error: counter is off at the location of delayed neutron energy distribution data for isotope " << isoName << endl;
-                        cout << "Count= " << count << " should be less than equal to " << (nextLawPos+startDNEDBlock-1) << endl;
-                    }
-                    for(;count<(nextLawPos+startDNEDBlock-1); count++)
-                    {
-                        stream >> dummy;
-                    }
-                    continue;
-                }
-
-                if(enDisLawND.back()<44)
-                    enerDistND.back()->ExtractMCNPData(stream, count);
-
-                else
-                    angEnDistND.back()->ExtractMCNPData(stream, count);
-
-                // go to next law position
-                if((count>(nextLawPos+startDNEDBlock-1))&&(nextLawPos!=0))
-                {
-                    cout << "Error: counter is off at the location of delayed neutron energy distribution data for isotope " << isoName << endl;
-                    cout << "Count= " << count << " should be less than equal to " << (nextLawPos+startDNEDBlock-1) << endl;
-                }
-                for(;count<(nextLawPos+startDNEDBlock-1); count++)
-                {
-                    stream >> dummy;
-                }
-            }
-            //this assumes that the energy distribution data collection is terminated when nextLawPos=0, may not be true check
-            while(nextLawPos>0);
-        }
-    }
 
     //Create Fission FS files
     if(MTRListPos[2]!=-1)
@@ -1914,7 +1896,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         MakeFissionFSFile(outDirName, isoName, isoMass, dataTemperature, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn, enDisSchemeVec, enDisRangeVec,
                             enDisEnApplVec, enDisProbApplVec, enerDist, enDisLawND, enDisNumLawApplNRegND, enDisNumLawApplNEnND, enDisSchemeVecND, enDisRangeVecND,
                             enDisEnApplVecND, enDisProbApplVecND, enerDistND, reacQValue, numAngEner, angDist, angDistInEnDistFlag, pCSVec, TYRList, promptYieldFlag, totalYieldFlag,
-                            dNPromptYieldDist, dNTotalYieldDist, dNYield, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP, enDisRangeVecP,
+                            dNPromptYieldDist, dNTotalYieldDist, dNYield, nDelConst, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP, enDisRangeVecP,
                             enDisEnApplVecP, enDisProbApplVecP, enerDistP, MTRPList, energyAngVecP, ascii);
     }
 
@@ -2067,6 +2049,12 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //delete out going delayed neutron data
     if(dNYield)
         delete dNYield;
+
+    if(nDelConst)
+        delete nDelConst;
+
+    if(dNEnDistPos)
+        delete [] dNEnDistPos;
 
     for(int i=0; i<int(enDisSchemeVecND.size());i++)
     {
@@ -2366,7 +2354,7 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
                         vector<int> enDisLawND, vector<int> enDisNumLawApplNRegND, vector<int> enDisNumLawApplNEnND, vector<int*> enDisSchemeVecND, vector<int*> enDisRangeVecND,
                         vector<double*> enDisEnApplVecND, vector<double*> enDisProbApplVecND, vector<EnergyDist*> enerDistND, double *reacQValue, int *numAngEner, vector<AngularDist*> *angDist,
                         bool *angDistInEnDistFlag, CSDist **pCSVec, int *TYRList, bool promptYieldFlag, bool totalYieldFlag, YieldDist *dNPromptYieldDist, YieldDist *dNTotalYieldDist,
-                        YieldDist *dNYield, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP, vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP,
+                        YieldDist *dNYield, NDelayConstDist *nDelConst, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP, vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP,
                         vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP, vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP, vector<EnergyDist*> *enerDistP,
                         vector<int> MTRPList, double **energyAngVecP, bool ascii)
 {
@@ -2435,7 +2423,6 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
             else if(enDisLaw[2][i]==4)
             {
                 stream << std::setw(14) << std::right << 1 << '\n';
-                cout << "###: not sure if this distribution is meant for out-going neutron energies" << endl;
             }
             else if(enDisLaw[2][i]==5)
             {
@@ -2594,15 +2581,15 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
 
     if(TYRList[2]==19)
     {
-        if(promptYieldFlag&&totalYieldFlag)
+        if(promptYieldFlag&&(dNYield!=NULL))
         {
             // delayed neutron production distribution
             stream << std::setw(14) << std::right << 3 << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << isoMass << std::setw(14) << std::right << 2 << '\n';
-            if(dNYield!=NULL)
-            {
-                dNYield->WriteG4NDLData(stream);
-            }
+            nDelConst->WriteG4NDLData(stream);
+            dNYield->WriteG4NDLData(stream);
+            // this approximation is not needed
+            /*
             else
             {
                 if((dNTotalYieldDist->IdentifyYourSelf()=="NYieldPolyFunc")&&(dNPromptYieldDist->IdentifyYourSelf()=="NYield1DTab"))
@@ -2613,29 +2600,7 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
                 }
                 dNTotalYieldDist->SubtractPrompt(dNPromptYieldDist);
                 dNTotalYieldDist->WriteG4NDLData(stream);
-            }
-            stream << '\n';
-
-            // prompt neutron production distribution
-            stream << std::setw(14) << std::right << 4 << std::setw(14) << std::right << 1 << '\n';
-            stream << std::setw(14) << std::right << isoMass << std::setw(14) << std::right << 2 << '\n';
-            if(dNPromptYieldDist->IdentifyYourSelf()=="NYieldPolyFunc")
-            {
-                YieldDist *temp = new NYield1DTab(dNPromptYieldDist);
-                delete dNPromptYieldDist;
-                dNPromptYieldDist = temp;
-            }
-            dNPromptYieldDist->WriteG4NDLData(stream);
-        }
-        else if(promptYieldFlag)
-        {
-            // delayed neutron production distribution
-            stream << std::setw(14) << std::right << 3 << std::setw(14) << std::right << 1 << '\n';
-            stream << std::setw(14) << std::right << isoMass << std::setw(14) << std::right << 2 << '\n';
-            if(dNYield!=NULL)
-            {
-                dNYield->WriteG4NDLData(stream);
-            }
+            }*/
             stream << '\n';
 
             // prompt neutron production distribution
@@ -2654,7 +2619,7 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
             // total neutron production distribution (creates all neutrons immediately as an approximation)
             stream << std::setw(14) << std::right << 2 << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << isoMass;
-            if(dNPromptYieldDist->IdentifyYourSelf()=="NYieldPolyFunc")
+            if(dNTotalYieldDist->IdentifyYourSelf()=="NYieldPolyFunc")
                 stream << std::setw(14) << std::right << 1 << '\n';
             else
                 stream << std::setw(14) << std::right << 2 << '\n';
@@ -2664,68 +2629,70 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
     }
 
     //Energy Distribution of delayed neutrons
-    stream << std::setw(14) << std::right << 3 << std::setw(14) << std::right << 5 << '\n';
-    stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDistND.size() << endl;
-
-    for(int i=0, count=0; i<int(enDisLawND.size()); i++, count++)
+    if(dNYield!=NULL)
     {
-        if(enDisLawND[i]<44)
+        stream << std::setw(14) << std::right << 3 << std::setw(14) << std::right << 5 << '\n';
+        stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDistND.size() << endl;
+
+        for(int i=0, count=0; i<int(enDisLawND.size()); i++, count++)
         {
-            if(enDisLawND[i]==1)
-                stream << std::setw(14) << std::right << 1 << '\n';
-            else if(enDisLawND[i]==3)
+            if(enDisLawND[i]<44)
             {
-                stream << std::setw(14) << std::right << 1 << '\n';
-            }
-            else if(enDisLawND[i]==4)
-            {
-                stream << std::setw(14) << std::right << 1 << '\n';
-                cout << "###: not sure if this distribution is meant for out-going neutron energies" << endl;
-            }
-            else if(enDisLawND[i]==5)
-            {
-                stream << std::setw(14) << std::right << 5 << '\n';
-            }
-            else if(enDisLawND[i]==7)
-            {
-                stream << std::setw(14) << std::right << 7 << '\n';
-            }
-            else if(enDisLawND[i]==9)
-            {
-                stream << std::setw(14) << std::right << 9 << '\n';
-            }
-            else if(enDisLawND[i]==11)
-            {
-                stream << std::setw(14) << std::right << 11 << '\n';
-            }
-            else if(enDisLawND[i]==22)
-            {
-                cout << "###: No direct translation for this law!" << endl;
-                stream << std::setw(14) << std::right << 1 << '\n';
-            }
-            else if(enDisLawND[i]==24)
-            {
-                cout << "###: No direct translation for this law!" << endl;
-                stream << std::setw(14) << std::right << 1 << '\n';
-            }
+                if(enDisLawND[i]==1)
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                else if(enDisLawND[i]==3)
+                {
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+                else if(enDisLawND[i]==4)
+                {
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+                else if(enDisLawND[i]==5)
+                {
+                    stream << std::setw(14) << std::right << 5 << '\n';
+                }
+                else if(enDisLawND[i]==7)
+                {
+                    stream << std::setw(14) << std::right << 7 << '\n';
+                }
+                else if(enDisLawND[i]==9)
+                {
+                    stream << std::setw(14) << std::right << 9 << '\n';
+                }
+                else if(enDisLawND[i]==11)
+                {
+                    stream << std::setw(14) << std::right << 11 << '\n';
+                }
+                else if(enDisLawND[i]==22)
+                {
+                    cout << "###: No direct translation for this law!" << endl;
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+                else if(enDisLawND[i]==24)
+                {
+                    cout << "###: No direct translation for this law!" << endl;
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
 
-            stream << std::setw(14) << std::right << enDisNumLawApplNEnND[i] <<'\n';
-            stream << std::setw(14) << std::right << enDisNumLawApplNRegND[i] <<'\n';
-            for(int j=0; j<enDisNumLawApplNRegND[i]; j++)
-            {
-                stream << std::setw(14) << std::right << enDisRangeVecND[i][j] << std::right << enDisSchemeVecND[i][j] << '\n';
-            }
-            for(int j=0; j<enDisNumLawApplNEnND[i]; j++)
-            {
-                stream << std::setw(14) << std::right << enDisEnApplVecND[i][j] << std::right << enDisProbApplVecND[i][j] << '\n';
-            }
+                stream << std::setw(14) << std::right << enDisNumLawApplNEnND[i] <<'\n';
+                stream << std::setw(14) << std::right << enDisNumLawApplNRegND[i] <<'\n';
+                for(int j=0; j<enDisNumLawApplNRegND[i]; j++)
+                {
+                    stream << std::setw(14) << std::right << enDisRangeVecND[i][j] << std::right << enDisSchemeVecND[i][j] << '\n';
+                }
+                for(int j=0; j<enDisNumLawApplNEnND[i]; j++)
+                {
+                    stream << std::setw(14) << std::right << enDisEnApplVecND[i][j] << std::right << enDisProbApplVecND[i][j] << '\n';
+                }
 
-            enerDistND[count]->WriteG4NDLData(stream);
+                enerDistND[count]->WriteG4NDLData(stream);
+            }
+            else
+                count--;
         }
-        else
-            count--;
+        stream << '\n';
     }
-    stream << '\n';
 
     //fission fragment data
     stream << std::setw(14) << std::right << 5 << std::setw(14) << std::right << 1 << '\n';
@@ -2874,7 +2841,6 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                         else if(enDisLaw[i][j]==4)
                         {
                             stream << std::setw(14) << std::right << 1 << '\n';
-                            cout << "###: not sure if this distribution is meant for out-going neutron energies" << endl;
                         }
                         else if(enDisLaw[i][j]==5)
                         {
@@ -2940,12 +2906,12 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
 
                             if(enDisLaw[i][j]==44)
                             {
-                                cout << "###: minor translation used for this law!" << endl;
+                                //cout << "###: minor translation used for this law!" << endl;
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
                             else if(enDisLaw[i][j]==61)
                             {
-                                cout << "###: minor translation used for this law!" << endl;
+                                //cout << "###: minor translation used for this law!" << endl;
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
                             else if(enDisLaw[i][j]==66)
@@ -2954,7 +2920,6 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
                             else if(enDisLaw[i][j]==67)
                             {
-                                cout << "###: minor translation used for this law!" << endl;
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
 
@@ -3147,7 +3112,6 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                         else if(enDisLaw[i][j]==4)
                         {
                             stream << std::setw(14) << std::right << 1 << '\n';
-                            cout << "###: not sure if this distribution is meant for out-going neutron energies" << endl;
                         }
                         else if(enDisLaw[i][j]==5)
                         {
@@ -3213,12 +3177,12 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
 
                             if(enDisLaw[i][j]==44)
                             {
-                                cout << "###: minor translation used for this law!" << endl;
+                                //cout << "###: minor translation used for this law!" << endl;
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
                             else if(enDisLaw[i][j]==61)
                             {
-                                cout << "###: minor translation used for this law!" << endl;
+                                //cout << "###: minor translation used for this law!" << endl;
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
                             else if(enDisLaw[i][j]==66)
@@ -3227,7 +3191,6 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
                             else if(enDisLaw[i][j]==67)
                             {
-                                cout << "###: minor translation used for this law!" << endl;
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
 

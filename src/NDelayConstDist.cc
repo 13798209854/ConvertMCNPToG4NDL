@@ -1,8 +1,8 @@
 #include "../include/NDelayConstDist.hh"
 
-NDelayConstDist::NDelayConstDist(int tableEndPos)
+NDelayConstDist::NDelayConstDist(int numDNFam)
 {
-    tabEndPos = tableEndPos;
+    numDNPrecursorFam = numDNFam;
 }
 
 NDelayConstDist::~NDelayConstDist()
@@ -34,7 +34,7 @@ void NDelayConstDist::ExtractMCNPData(stringstream &stream, int &count)
     int intTemp;
     double temp;
 
-    while(count<tabEndPos)
+    for(int i=0; i<numDNPrecursorFam; i++)
     {
         stream >> temp >> intTemp; count=count+2;
 
@@ -88,6 +88,12 @@ void NDelayConstDist::ExtractMCNPData(stringstream &stream, int &count)
 
 void NDelayConstDist::WriteG4NDLData(stringstream &stream)
 {
-
+    stream << std::setw(14) << std::right << numDNPrecursorFam;
+    for(int i=0; i<numDNPrecursorFam; i++)
+    {
+        if(i%6==0)
+            stream << endl;
+        stream << std::setw(14) << std::right << delConst[i];
+    }
 
 }
