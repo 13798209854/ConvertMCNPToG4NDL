@@ -27,7 +27,7 @@ class CSDistYieldComp : public CSDist
         {
             nCSData->SetCSData(enerCSVec, csEnerStart, csVec, csSize);
         }
-        void SetCSData(double* &enerCSVec, int &csEnerStart, double* &csVec, int &csSize)
+        void SetCSData(double* &enerCSVecSet, int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
         {
 
         }

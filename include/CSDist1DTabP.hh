@@ -26,12 +26,12 @@ class CSDist1DTabP: public CSDist
         {
             nCSData->SetCSData(enerCSVec, csEnerStart, csVec, csSize);
         }
-        void SetCSData(double* &enerCSVec, int &csEnerStart, double* &csVec, int &csSize)
+        void SetCSData(double* &enerCSVecSet, int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
         {
 
         }
         int startEner, CSVecSize, csSize, mtNum, csEnerStart;
-        double *CSVec, *enerVec, *csVec, *enerCSVec;
+        double *CSVec, *csVec, *enerCSVec;
         bool elastic=false;
     protected:
     private:

@@ -994,6 +994,20 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     {
         for(int i=1; i<numProcess; i++)
         {
+            if(abs(TYRList[extractOrder[i]])>100)
+            {
+                if(count>(abs(TYRList[extractOrder[i]])+startDLWBlock-101))
+                {
+                    cout << "Error: counter is off at the start of the energy dependant primary neutron yield Block for isotope " << isoName << endl;
+                    cout << "Count= " << count << " should be less than equal to " << (abs(TYRList[extractOrder[i]])+startDLWBlock-101) << endl;
+                }
+                for(;count<(abs(TYRList[extractOrder[i]])+startDLWBlock-101); count++)
+                {
+                    stream >> dummy;
+                }
+                nYieldReac[extractOrder[i]] = new NYield1DTab;
+                nYieldReac[extractOrder[i]]->ExtractMCNPData(stream, count);
+            }
             if(LDLWList[extractOrder[i]]==-1)
                 continue;
             if(count>(LDLWList[extractOrder[i]]+startDLWBlock-1))
@@ -1155,23 +1169,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     stream >> dummy;
                 }
             }
-            //this assumes that the energy distribution data collection is terminated when nextLawPos=0, may not be true check
             while(nextLawPos>0);
-
-            if(abs(TYRList[extractOrder[i]])>100)
-            {
-                if(count!=(abs(TYRList[extractOrder[i]])+startDLWBlock-101))
-                {
-                    cout << "Error: counter is off at the start of the energy dependant primary neutron yield Block for isotope " << isoName << endl;
-                }
-                for(;count<(abs(TYRList[extractOrder[i]])+startDLWBlock-101); count++)
-                {
-                    stream >> dummy;
-                }
-                nYieldReac[extractOrder[i]] = new NYield1DTab;
-                nYieldReac[extractOrder[i]]->ExtractMCNPData(stream, count);
-            }
-
         }
     }
 
@@ -1287,6 +1285,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     extractOrderP[j] = index;
                 }
             }
+        }
+        if(isoName=="7_14_Nitrogen")
+        {
+            cout << "stop here" << endl;
         }
 
         int MTRIndex=0;
@@ -1446,7 +1448,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 //the angular distribution is represented by a probability density function where each of the 32 points/bins are spaced along the entire cosine of the scattering angle axis
                 //such that the integral of the probability density with the cosine of the scattering angle inbetween them is kept constant, meaning that the bins are in a equilprobable arrangement
                 // the first bin probably corresponds to a cosine value of -1 and and the last bin being some where around 1 depending on the spacing
-                if(angTabPosVecP[extractOrderP[i]]!=0)
+                if(angTabPosVecP[extractOrderP[i]][exOrderAngP[j]]!=0)
                 {
                     if(count>(startANDPBlock+angTabPosVecP[extractOrderP[i]][exOrderAngP[j]]-1))
                     {
@@ -3010,7 +3012,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 {
                     stream << std::setw(14) << std::right << enerDistP[inEPReacIndex[j]].front()->GetAverageOutEnergy() << std::setw(14) << std::right << 0. << endl;
                     stream << std::setw(14) << std::right << numAngEnerP[inEPReacIndex[j]] << '\n';
-                    for(int k=0; j<int(angDistP[inEPReacIndex[k]].size()); k++)
+                    for(int k=0; k<int(angDistP[inEPReacIndex[j]].size()); k++)
                     {
                         angDistP[inEPReacIndex[j]][k]->WriteG4NDLData(stream);
                     }
@@ -3283,7 +3285,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 {
                     stream << std::setw(14) << std::right << enerDistP[inEPReacIndex[j]].front()->GetAverageOutEnergy() << std::setw(14) << std::right << 0. << endl;
                     stream << std::setw(14) << std::right << numAngEnerP[inEPReacIndex[j]] << '\n';
-                    for(int k=0; j<int(angDistP[inEPReacIndex[k]].size()); k++)
+                    for(int k=0; k<int(angDistP[inEPReacIndex[j]].size()); k++)
                     {
                         angDistP[inEPReacIndex[j]][k]->WriteG4NDLData(stream);
                     }

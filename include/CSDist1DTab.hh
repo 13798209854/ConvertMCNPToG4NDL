@@ -30,12 +30,12 @@ class CSDist1DTab: public CSDist
 
         }
         double Interpolate(double x);
-        void SetCSData(double* &enerCSVec, int &csEnerStart, double* &csVec, int &csSize)
+        void SetCSData(double* &enerCSVecSet, int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
         {
-            enerCSVec=enerVec;
-            csEnerStart=startEner;
-            csVec=CSVec;
-            csSize=CSVecSize;
+            enerCSVecSet=enerVec;
+            csEnerStartSet=startEner;
+            csVecSet=CSVec;
+            csSizeSet=CSVecSize;
         }
         string IdentifyYourSelf();
         /*double* GetEnergyVec()
