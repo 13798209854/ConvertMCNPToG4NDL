@@ -1,0 +1,7 @@
+.gitignore~
+ConvertMCNPToG4NDL.cbp
+ConvertMCNPToG4NDL.depend
+ConvertMCNPToG4NDL.layout
+bin/
+obj/
+
