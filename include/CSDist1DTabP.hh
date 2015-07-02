@@ -30,6 +30,14 @@ class CSDist1DTabP: public CSDist
         {
 
         }
+        void AddData(CSDist *secDist)
+        {
+
+        }
+        void AddData(int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
+        {
+
+        }
         int startEner, CSVecSize, csSize, mtNum, csEnerStart;
         double *CSVec, *csVec, *enerCSVec;
         bool elastic=false;

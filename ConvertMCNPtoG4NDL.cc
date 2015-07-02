@@ -53,13 +53,13 @@ using namespace std;
 #include "include/NYield1DTab.hh"
 #include "include/NYieldPolyFunc.hh"
 
-#define numProcess 34
+#define numProcess 38
 
 int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS, double &fileCount);
 
 bool DirectoryExists( const char* pzPath );
 
-void MakeCSDataFile(string fileName, int MTRNum, CSDist *csDist, bool ascii);
+void MakeCSDataFile(string outDirName, string isoName, int MTRNum[], CSDist **csDist, bool ascii);
 
 void MakeElasFSFile(string fileName, double isoMass, int numAngEner[], vector<AngularDist*> *angDist, bool ascii);
 
@@ -68,7 +68,7 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
                         vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP, vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP,
                         vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP, double **energyAngVecP, CSDist *nCSVec, bool ascii);
 
-void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double temperature, vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn,
+void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double temperature, CSDist **nCSVec, vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn,
                         vector<int*> *enDisSchemeVec, vector<int*> *enDisRangeVec, vector<double*> *enDisEnApplVec, vector<double*> *enDisProbApplVec, vector<EnergyDist*> *enerDist,
                         vector<int> enDisLawND, vector<int> enDisNumLawApplNRegND, vector<int> enDisNumLawApplNEnND, vector<int*> enDisSchemeVecND, vector<int*> enDisRangeVecND,
                         vector<double*> enDisEnApplVecND, vector<double*> enDisProbApplVecND, vector<EnergyDist*> enerDistND, double *reacQValue, int *numAngEner, vector<AngularDist*> *angDist,
@@ -119,8 +119,13 @@ void SetDataStream( string, std::stringstream&, bool);
 // X Format the output so that it is properly spaced
 // X add warnings to the code
 // X Check NU block extraction, unclear what XSS(JXS(2)) means versus JXS(2)
+// X Since there is no inelastic scattering for 1001 MCNP doesn't bother giving a cross-section file which causes G4STORK to not use the MCNP data for 1001,
+// we fixed this issue by forcing MCNP to output a cross-section file for the reaction which sets the probability of the reaction to zero for all incoming neutron energies
 
-// Check photon enegy dist extraction in G$NDL and make sure that our approximation of mixing them is right
+// Create a script to go through and compare the doppler broadened G4NDL data to the MCNP cross-section data and make sure the converted data is giving the expected results
+// Create a script to go through and compare the G4NDL final state data to the final state data converted from MCNP to make sure the converted data is giving the expected results
+// Compare liams converted data to ours
+// Check photon enegy dist extraction in G4NDL and make sure that our approximation of mixing them is right
 // Check the delayed neutron energy distribution weight vector and see if we need to multiply it by the delayed group weight
 // optimize data usage by only passing the sections of data containers and arrays needed within a particular function
 // do a final general sweep of the code
@@ -266,7 +271,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     ElementNames *elementNames;
     string temperature, isoName;
     string dummy, Z, A;
-    string outDirNameCSProc[4];
     stringstream numConv;
     int Znum, isoNum;
     double isoMass, dataTemperature;
@@ -300,7 +304,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //for the following arrays, the indicies 0,1,2,3 correspond to elastic, capture, fission and inelastic respectively
     //location arrays are set to -1 to show that the data has not been set
     // this array sets the order of the processes, must be manually enetered
-    int MTRList[numProcess]={2,102,18,4,5,11,16,17,22,23,24,25,28,29,32,33,34,37,41,42,44,45,103,104,105,106,107,108,111,112,113,115,116,117};
+    int MTRList[numProcess]={2,102,18,19,20,21,38,4,5,11,16,17,22,23,24,25,28,29,32,33,34,37,41,42,44,45,103,104,105,106,107,108,111,112,113,115,116,117};
     int MTRListPos[numProcess]; //position of the reaction MT in MT list
     for(int i=0; i<numProcess; i++)
     {
@@ -371,30 +375,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     if(outDirName.back()!='/')
         outDirName+='/';
 
-    outDirName = outDirName+temperature+'/';
-
-    outDirNameCSProc[0] = outDirName +"Elastic/CrossSection/";
-    outDirNameCSProc[1] = outDirName +"Capture/CrossSection/";
-    outDirNameCSProc[2] = outDirName +"Fission/CrossSection/";
-    outDirNameCSProc[3] = outDirName +"Inelastic/CrossSection/";
-
-    // creates temperature directories for the converted files to go if they don't already exist
-    for(int i=0; i<4; i++)
-    {
-        if(!(DirectoryExists((outDirNameCSProc[i]).c_str())))
-        {
-            system( ("mkdir -p -m=666 "+outDirNameCSProc[i]).c_str());
-            if(DirectoryExists((outDirNameCSProc[i]).c_str()))
-            {
-                cout << "created directory " << outDirNameCSProc[i] << "\n" << endl;
-            }
-            else
-            {
-                cout << "\nError: could not create directory " << outDirNameCSProc[i] << "\n" << endl;
-                return 1;
-            }
-        }
-    }
+    outDirName = outDirName+temperature+"K/";
 
     for(int i=0; i<6; i++)
     {
@@ -466,9 +447,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
 
     nCSVec[0] = new CSDist1DTab(energyCSVec, numCSEner);
     nCSVec[0]->ExtractMCNPData(stream, count);
-
-    if(numCSEner!=0)
-        MakeCSDataFile(outDirNameCSProc[0]+isoName, MTRList[0], nCSVec[0], ascii);
 
     //Extract NU block here for fission yield
     //have not iterated through this section yet
@@ -693,10 +671,9 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 }
                 nCSVec[extractOrder[i]] = new CSDist1DTab(energyCSVec);
                 nCSVec[extractOrder[i]]->ExtractMCNPData(stream, count);
-                if(MTRList[extractOrder[i]]==102||MTRList[extractOrder[i]]==18||MTRList[extractOrder[i]]==4)
-                    MakeCSDataFile(outDirNameCSProc[extractOrder[i]]+isoName, MTRList[extractOrder[i]], nCSVec[extractOrder[i]], ascii);
             }
         }
+        MakeCSDataFile(outDirName, isoName, MTRList, nCSVec, ascii);
     }
 
     if(onlyCS)
@@ -1893,7 +1870,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //Create Fission FS files
     if(MTRListPos[2]!=-1)
     {
-        MakeFissionFSFile(outDirName, isoName, isoMass, dataTemperature, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn, enDisSchemeVec, enDisRangeVec,
+        MakeFissionFSFile(outDirName, isoName, isoMass, dataTemperature, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn, enDisSchemeVec, enDisRangeVec,
                             enDisEnApplVec, enDisProbApplVec, enerDist, enDisLawND, enDisNumLawApplNRegND, enDisNumLawApplNEnND, enDisSchemeVecND, enDisRangeVecND,
                             enDisEnApplVecND, enDisProbApplVecND, enerDistND, reacQValue, numAngEner, angDist, angDistInEnDistFlag, pCSVec, TYRList, promptYieldFlag, totalYieldFlag,
                             dNPromptYieldDist, dNTotalYieldDist, dNYield, nDelConst, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP, enDisRangeVecP,
@@ -2109,21 +2086,137 @@ bool DirectoryExists( const char* pzPath )
     return bExists;
 }
 
-void MakeCSDataFile(string fileName, int MTRNum, CSDist *csDist, bool ascii)
+void MakeCSDataFile(string outDirName, string isoName, int MTRNum[], CSDist **csDist, bool ascii)
 {
     // creates the Cross-section data files
+    string outDirNameCSProc[4];
     std::stringstream stream;
     stream.fill(' ');
     stream.precision(6);
     stream.setf(std::ios::scientific);
 
-    stream << std::setw(14) << std::right << MTRNum << '\n';
+    outDirNameCSProc[0] = outDirName +"Elastic/CrossSection/";
+    outDirNameCSProc[1] = outDirName +"Capture/CrossSection/";
+    outDirNameCSProc[2] = outDirName +"Fission/CrossSection/";
+    outDirNameCSProc[3] = outDirName +"Inelastic/CrossSection/";
+
+    // creates temperature directories for the converted files to go if they don't already exist
+    for(int i=0; i<4; i++)
+    {
+        if(!(DirectoryExists((outDirNameCSProc[i]).c_str())))
+        {
+            system( ("mkdir -p -m=666 "+outDirNameCSProc[i]).c_str());
+            if(DirectoryExists((outDirNameCSProc[i]).c_str()))
+            {
+                cout << "created directory " << outDirNameCSProc[i] << "\n" << endl;
+            }
+            else
+            {
+                cout << "\nError: could not create directory " << outDirNameCSProc[i] << "\n" << endl;
+                return;
+            }
+        }
+    }
+
+    for(int i=0; i<2; i++)
+    {
+        if(csDist[i])
+        {
+            stream << std::setw(14) << std::right << MTRNum[i] << '\n';
+            stream << std::setw(14) << std::right << '0' << '\n';
+
+            csDist[i]->WriteG4NDLCSData(stream);
+            SetDataStream( outDirNameCSProc[i]+isoName, stream, ascii);
+
+            stream.clear();
+            stream.str("");
+        }
+    }
+
+    if(csDist[2])
+    {
+        stream << std::setw(14) << std::right << MTRNum[2] << '\n';
+        stream << std::setw(14) << std::right << '0' << '\n';
+
+        csDist[2]->WriteG4NDLCSData(stream);
+        SetDataStream( outDirNameCSProc[2]+isoName, stream, ascii);
+
+        stream.clear();
+        stream.str("");
+    }
+    else
+    {
+        stream << std::setw(14) << std::right << MTRNum[2] << '\n';
+        stream << std::setw(14) << std::right << '0' << '\n';
+
+        bool first=true;
+        CSDist1DTab* sumCSData = NULL;
+        for(int i=3; i<7; i++)
+        {
+            if(csDist[i])
+            {
+                if(first)
+                {
+                    sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
+                    first=false;
+                }
+                else
+                    sumCSData->AddData(csDist[i]);
+            }
+        }
+
+        if(sumCSData)
+        {
+            sumCSData->WriteG4NDLCSData(stream);
+            SetDataStream( outDirNameCSProc[2]+isoName, stream, ascii);
+            delete sumCSData;
+        }
+
+        stream.clear();
+        stream.str("");
+    }
+
+    stream << std::setw(14) << std::right << MTRNum[7] << '\n';
     stream << std::setw(14) << std::right << '0' << '\n';
-    csDist->WriteG4NDLCSData(stream);
-    SetDataStream( fileName, stream, ascii);
+
+    bool first=true;
+    CSDist1DTab* sumCSData = NULL;
+    for(int i=7; i<numProcess; i++)
+    {
+        if(csDist[i])
+        {
+            if(first)
+            {
+                sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
+                first=false;
+            }
+            else
+                sumCSData->AddData(csDist[i]);
+        }
+    }
+
+    if(sumCSData)
+    {
+        sumCSData->WriteG4NDLCSData(stream);
+        SetDataStream( outDirNameCSProc[3]+isoName, stream, ascii);
+        delete sumCSData;
+    }
 
     stream.clear();
     stream.str("");
+
+    if(isoName=="1_1_Hydrogen")
+    {
+        stream << std::setw(14) << std::right << MTRNum[7] << '\n';
+        stream << std::setw(14) << std::right << '0' << '\n';
+        stream << std::setw(14) << std::right << '1' << '\n';
+        stream << std::setw(14) << std::right << 2.000000e+07 << std::setw(14) << std::right << 0.0 << '\n';
+
+        SetDataStream( outDirNameCSProc[3]+isoName, stream, ascii);
+
+        stream.clear();
+        stream.str("");
+    }
 }
 
 void MakeElasFSFile(string fileName, double isoMass, int numAngEner[], vector<AngularDist*> *angDist, bool ascii)
@@ -2349,7 +2442,7 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
 
 }
 
-void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double temperature, vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn,
+void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double temperature, CSDist **nCSVec, vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn,
                         vector<int*> *enDisSchemeVec, vector<int*> *enDisRangeVec, vector<double*> *enDisEnApplVec, vector<double*> *enDisProbApplVec, vector<EnergyDist*> *enerDist,
                         vector<int> enDisLawND, vector<int> enDisNumLawApplNRegND, vector<int> enDisNumLawApplNEnND, vector<int*> enDisSchemeVecND, vector<int*> enDisRangeVecND,
                         vector<double*> enDisEnApplVecND, vector<double*> enDisProbApplVecND, vector<EnergyDist*> enerDistND, double *reacQValue, int *numAngEner, vector<AngularDist*> *angDist,
@@ -2729,16 +2822,118 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
     stream.str("");
 
     // FC/, SC/, TC/, and LC/
-    // Since MCNP only provides one complete set of laws to describe the out-going prompt neutrons, all of the necessary data has been put in the FS/ directory
-    // and these directories are not needed so we leave the files in these directories blank
-    /*
-    //here we just set the cross-section data contianed in all the isotope files in each of these directories to zero so that these files will not be used
-    stream << std::setw(14) << std::right << 0;
-    stream << std::setw(14) << std::right << 0;
-    stream << std::setw(14) << std::right << 2;
-    stream << std::setw(14) << std::right << 0. << std::setw(14) << std::right << 0.;
-    stream << std::setw(14) << std::right << 20000000 << std::setw(14) << std::right << 0.;
-    */
+    string fisDirName[4]={"FC/", "SC/","TC/","LC/"};
+    for(int i=3; i<7; i++)
+    {
+        //check the reference frame that the data has been gathered from
+        if(TYRList[i]>0)
+            frameFlag=1;
+
+        stream << std::setw(14) << std::right << 0. << std::setw(14) << std::right << 0. << endl;
+
+        nCSVec[i]->WriteG4NDLCSData(stream);
+
+        if(!angDistInEnDistFlag[i])
+        {
+            //prompt neutrons angular Distribution
+            stream << std::setw(14) << std::right << repFlag;
+            stream << std::setw(14) << std::right << isoMass;
+            stream << std::setw(14) << std::right << frameFlag;
+            stream << std::setw(14) << std::right << numAngEner[i] << '\n';
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numAngEner[i]<< std::setw(14) << std::right << 2 << '\n'; // assuming linear scheme here based off G4NDL examples
+
+            //note angDist[0].size() does not necessarilly equal numAngEner[0] since if the distribution type is the same between adjacent
+            //incoming energy points we don't add another object to angDist, instead we add the point to the previous object
+            for(int j=0; j<int(angDist[i].size()); j++)
+            {
+                angDist[i][j]->WriteG4NDLData(stream);
+            }
+            stream << '\n' << endl;
+        }
+
+        //Energy Distribution of prompt neutron
+        stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
+
+        for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
+        {
+            if(enDisLaw[i][j]<44)
+            {
+                if(enDisLaw[i][j]==1)
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                else if(enDisLaw[i][j]==3)
+                {
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+                else if(enDisLaw[i][j]==4)
+                {
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+                else if(enDisLaw[i][j]==5)
+                {
+                    stream << std::setw(14) << std::right << 5 << '\n';
+                }
+                else if(enDisLaw[i][j]==7)
+                {
+                    stream << std::setw(14) << std::right << 7 << '\n';
+                }
+                else if(enDisLaw[i][j]==9)
+                {
+                    stream << std::setw(14) << std::right << 9 << '\n';
+                }
+                else if(enDisLaw[i][j]==11)
+                {
+                    stream << std::setw(14) << std::right << 11 << '\n';
+                }
+                else if(enDisLaw[i][j]==22)
+                {
+                    cout << "###: No direct translation for this law!" << endl;
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+                else if(enDisLaw[i][j]==24)
+                {
+                    cout << "###: No direct translation for this law!" << endl;
+                    stream << std::setw(14) << std::right << 1 << '\n';
+                }
+
+                stream << std::setw(14) << std::right << enDisNumLawApplNEn[i][j] <<'\n';
+                stream << std::setw(14) << std::right << enDisNumLawApplNReg[i][j] <<'\n';
+                for(int k=0; k<enDisNumLawApplNReg[i][j]; k++)
+                {
+                    stream << std::setw(14) << std::right << enDisRangeVec[i][j][k] << std::right << enDisSchemeVec[i][j][k] << '\n';
+                }
+                for(int k=0; k<enDisNumLawApplNEn[i][j]; k++)
+                {
+                    stream << std::setw(14) << std::right << enDisEnApplVec[i][j][k] << std::right << enDisProbApplVec[i][j][k] << '\n';
+                }
+
+                enerDist[i][count]->WriteG4NDLData(stream);
+            }
+            else
+                count--;
+        }
+        stream << '\n';
+
+        fileName = outDirName+"Fission/"+fisDirName[i-3]+isoName;
+        outDir = outDirName+"Fission/"+fisDirName[i-3];
+        if(!(DirectoryExists((outDir).c_str())))
+        {
+            system( ("mkdir -p -m=666 "+outDir).c_str());
+            if(DirectoryExists((outDir).c_str()))
+            {
+                cout << "created directory " << outDir << "\n" << endl;
+            }
+            else
+            {
+                cout << "\nError: could not create directory " << outDir << "\n" << endl;
+                return;
+            }
+        }
+        SetDataStream( fileName, stream, ascii);
+
+        stream.clear();
+        stream.str("");
+    }
 }
 
 void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist *nCSVec[],
@@ -2760,7 +2955,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
     int frameFlag, repFlag, dirNum=0;
     vector<int> inEPReacIndex;
 
-    for(int i=3; i<numProcess; i++)
+    for(int i=7; i<numProcess; i++)
     {
         dirNum++;
         if((dirNum==12)||(dirNum==16)||(dirNum==29)||(dirNum==32))
@@ -2794,10 +2989,10 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
             // F02, F03, F04,  F05, F06, F07, F08, F09, F10, F11, F12, F13, F14, F15, F16, F17, F18, F19, F20, F21, F22,  F28, F29, F30, F31, F32, F33, F34,
             // F35, F36 directories
 
-            if((i!=1)&&(!((i>22)&&(i<28))))
+            if((dirNum!=1)&&(!((dirNum>22)&&(dirNum<28))))
             {
                 //probability of reaction occuring
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 3 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 3 << '\n';
                 //dummy variables at the beginning of the file
                 stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0;
                 nCSVec[i]->WriteG4NDLCSData(stream);
@@ -2807,7 +3002,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 //Angular Distribution
                 if(!angDistInEnDistFlag[i])
                 {
-                    stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 4 << '\n';
+                    stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 4 << '\n';
                     stream << std::setw(14) << std::right << repFlag;
                     stream << std::setw(14) << std::right << isoMass;
                     stream << std::setw(14) << std::right << frameFlag;
@@ -2825,7 +3020,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 }
 
                 //Energy Distribution of prompt neutron
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 5 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 5 << '\n';
                 stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
 
                 for(int j=0, count=0; i<int(enDisLaw[i].size()); j++, count++)
@@ -2890,7 +3085,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 // neutron energy-angular distribution
                 if(angDistInEnDistFlag[i])
                 {
-                    stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 6 << '\n';
+                    stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 6 << '\n';
                     stream << std::setw(14) << std::right << isoMass;
                     stream << std::setw(14) << std::right << frameFlag;
                     stream << std::setw(14) << std::right << angEnDist[i].size() << '\n';
@@ -2949,7 +3144,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
 
 
                 // photon production distribution
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 12 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 12 << '\n';
                 // I use repFlag 1 no matter what
                 stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << isoMass << std::setw(14) << std::right << inEPReacIndex.size();
                 for(int j=0; j<int(inEPReacIndex.size()); j++)
@@ -2970,7 +3165,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 */
 
                 // photon angular distribution
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 14 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 14 << '\n';
                 stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << 2 << std::setw(14) << std::right << inEPReacIndex.size() << std::setw(14) << std::right << 0 << endl;
 
                 for(int j=0; j<int(inEPReacIndex.size()); j++)
@@ -2985,7 +3180,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 stream << '\n';
 
                 // photon energy distribution
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 15 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 15 << '\n';
                 //Here we adjust the tables defining the probability of an energy dist applicablitity to be normalized to 1 and then weighted by the cross-section
                 //this is an approximation that lets us put all the energy dist for every photon production reaction caused by this neutron production reaction
                 //into one big list. the normalization ensures that the probability sum between photon production reactions is the same and the weighting of the cross-sections
@@ -3067,7 +3262,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
             else
             {
                 //probability of reaction occuring
-                stream << std::setw(14) << std::right << i-1 << std::setw(14) << std::right << 3 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 3 << '\n';
                 stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0 << '\n';
                 //dummy variables at the beginning of the file
                 stream << std::setw(14) << std::right << reacQValue[i] << std::setw(14) << std::right << 0;
@@ -3078,7 +3273,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 //Angular Distribution
                 if(!angDistInEnDistFlag[i])
                 {
-                    stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 4 << '\n';
+                    stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 4 << '\n';
                     stream << std::setw(14) << std::right << repFlag;
                     stream << std::setw(14) << std::right << isoMass;
                     stream << std::setw(14) << std::right << frameFlag;
@@ -3096,7 +3291,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 }
 
                 //Energy Distribution of prompt neutron
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 5 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 5 << '\n';
                 stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
 
                 for(int j=0, count=0; i<int(enDisLaw[i].size()); j++, count++)
@@ -3161,7 +3356,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 // neutron energy-angular distribution
                 if(angDistInEnDistFlag[i])
                 {
-                    stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 6 << '\n';
+                    stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 6 << '\n';
                     stream << std::setw(14) << std::right << isoMass;
                     stream << std::setw(14) << std::right << frameFlag;
                     stream << std::setw(14) << std::right << angEnDist[i].size() << '\n';
@@ -3220,7 +3415,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
 
 
                 // photon production distribution
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 12 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 12 << '\n';
                 // I use repFlag 1 no matter what
                 stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << isoMass << std::setw(14) << std::right << inEPReacIndex.size();
                 for(int j=0; j<int(inEPReacIndex.size()); j++)
@@ -3241,7 +3436,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 */
 
                 // photon angular distribution
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 14 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 14 << '\n';
                 stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << 2 << std::setw(14) << std::right << inEPReacIndex.size() << std::setw(14) << std::right << 0 << endl;
 
                 for(int j=0; j<int(inEPReacIndex.size()); j++)
@@ -3256,7 +3451,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 stream << '\n';
 
                 // photon energy distribution
-                stream << std::setw(14) << std::right << 1 << std::setw(14) << std::right << 15 << '\n';
+                stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 15 << '\n';
                 //Here we adjust the tables defining the probability of an energy dist applicablitity to be normalized to 1 and then weighted by the cross-section
                 //this is an approximation that lets us put all the energy dist for every photon production reaction caused by this neutron production reaction
                 //into one big list. the normalization ensures that the probability sum between photon production reactions is the same and the weighting of the cross-sections

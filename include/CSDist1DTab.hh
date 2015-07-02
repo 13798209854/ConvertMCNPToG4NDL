@@ -18,7 +18,20 @@ class CSDist1DTab: public CSDist
     public:
         CSDist1DTab(double *energyVec);
         CSDist1DTab(double *energyVec, int numCSEner);
+        CSDist1DTab(CSDist1DTab *csDist)
+        {
+            startEner=csDist->startEner;
+            CSVecSize=csDist->CSVecSize;
+            enerVec=csDist->enerVec;
+            CSVec= new double[CSVecSize];
+            for(int i=0; i<CSVecSize; i++)
+            {
+                CSVec[i] = csDist->CSVec[i];
+            }
+        }
+
         virtual ~CSDist1DTab();
+
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLCSData(stringstream &stream);
         void WriteG4NDLYieldData(stringstream &stream)
@@ -36,6 +49,51 @@ class CSDist1DTab: public CSDist
             csEnerStartSet=startEner;
             csVecSet=CSVec;
             csSizeSet=CSVecSize;
+        }
+        void AddData(CSDist *secDist)
+        {
+            secDist->AddData(startEner, CSVec, CSVecSize);
+        }
+        void AddData(int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
+        {
+            int tempStartEner = min(startEner, csEnerStartSet);
+            int tempCSVecSize = max(CSVecSize+startEner, csSizeSet+csEnerStartSet)-tempStartEner;
+            double *tempCSVec = new double [tempCSVecSize];
+
+            for(int i=0; i<tempCSVecSize; i++)
+            {
+                tempCSVec[i]=0;
+                if((i+tempStartEner>=startEner)&&(i+tempStartEner<CSVecSize+startEner))
+                {
+                    tempCSVec[i]+=CSVec[i-startEner+tempStartEner];
+                }
+                else if(i+tempStartEner>=CSVecSize+startEner)
+                {
+                    tempCSVec[i]+=CSVec[CSVecSize+startEner-1];
+                }
+                else
+                {
+                    tempCSVec[i]+=CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[startEner], enerVec[startEner+1], CSVec[0], CSVec[1]);
+                }
+                if((i+tempStartEner>=csEnerStartSet)&&(i+tempStartEner<csSizeSet+csEnerStartSet))
+                {
+                    tempCSVec[i]+=csVecSet[i-csEnerStartSet+tempStartEner];
+                }
+                else if(i+tempStartEner>=csSizeSet+csEnerStartSet)
+                {
+                    tempCSVec[i]+=csVecSet[csSizeSet+csEnerStartSet-1];
+                }
+                else
+                {
+                    tempCSVec[i]+=CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[csEnerStartSet], enerVec[csEnerStartSet+1], csVecSet[0], csVecSet[1]);
+                }
+            }
+
+            csEnerStartSet=tempStartEner;
+            csSizeSet=tempCSVecSize;
+            delete [] csVecSet;
+            csVecSet=tempCSVec;
+
         }
         string IdentifyYourSelf();
         /*double* GetEnergyVec()

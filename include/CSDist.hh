@@ -26,6 +26,8 @@ class CSDist
         virtual void WriteG4NDLCSData(stringstream &stream)=0;
         virtual void SetCSData(CSDist* nCSData)=0;
         virtual void SetCSData(double* &enerCSVecSet, int &csEnerStartSet, double* &csVecSet, int &csSizeSet)=0;
+        virtual void AddData(CSDist *secDist)=0;
+        virtual void AddData(int &csEnerStartSet, double* &csVecSet, int &csSizeSet)=0;
         /*virtual double* GetEnergyVec()=0;
         virtual double* GetCSVec()=0;
         virtual int GetCSSize()=0;*/

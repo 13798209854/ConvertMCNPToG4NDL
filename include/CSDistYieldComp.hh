@@ -31,6 +31,14 @@ class CSDistYieldComp : public CSDist
         {
 
         }
+        void AddData(CSDist *secDist)
+        {
+
+        }
+        void AddData(int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
+        {
+
+        }
         int mtMulti, numRegs, mtNum, numIncEner, csSize, csEnerStart;
         int *regEndPos, *intScheme;
         double *yieldVec, *enerVec, *enerCSVec, *csVec;
