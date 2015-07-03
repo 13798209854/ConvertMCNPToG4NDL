@@ -76,5 +76,5 @@ double CSDist1DTab::Interpolate(double x)
     if(i<0)
         i=0;
 
-    return CSDist::Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]);
+    return max(0.,CSDist::Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]));
 }

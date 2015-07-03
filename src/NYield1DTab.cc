@@ -132,7 +132,7 @@ void NYield1DTab::SubtractPrompt(int totalNumIncEner, double *totalIncEner, doub
         if(low!=0)
             low--;
 
-        totalYield[i]-=Interpolate( intScheme[reg], totalIncEner[i], incEner[low], incEner[low+1], yield[low], yield[low+1]);
+        totalYield[i]-=max(0.,Interpolate( intScheme[reg], totalIncEner[i], incEner[low], incEner[low+1], yield[low], yield[low+1]));
     }
 
 }

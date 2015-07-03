@@ -154,7 +154,7 @@ double CSDistYieldComp::Interpolate(double x)
         low=0;
     if(csIndex<0)
         csIndex=0;
-    csNum1 = (enerVec[i]-enerCSVec[low])*(csVec[csIndex+1]-csVec[csIndex])/(enerCSVec[low+1]-enerCSVec[low])+csVec[csIndex];
+    csNum1 = max(0.,(enerVec[i]-enerCSVec[low])*(csVec[csIndex+1]-csVec[csIndex])/(enerCSVec[low+1]-enerCSVec[low])+csVec[csIndex]);
 
     for(low=csEnerStart-1; low<csSize+csEnerStart-1; low++)
     {
@@ -169,7 +169,7 @@ double CSDistYieldComp::Interpolate(double x)
         low=0;
     if(csIndex<0)
         csIndex=0;
-    csNum2 = (enerVec[i+1]-enerCSVec[low])*(csVec[csIndex+1]-csVec[csIndex])/(enerCSVec[low+1]-enerCSVec[low])+csVec[csIndex];
+    csNum2 = max(0.,(enerVec[i+1]-enerCSVec[low])*(csVec[csIndex+1]-csVec[csIndex])/(enerCSVec[low+1]-enerCSVec[low])+csVec[csIndex]);
 
-    return CSDist::Interpolate(intScheme[reg], x, enerVec[i], enerVec[i+1], yieldVec[i]*csNum1, yieldVec[i+1]*csNum2);
+    return max(0.,CSDist::Interpolate(intScheme[reg], x, enerVec[i], enerVec[i+1], yieldVec[i]*csNum1, yieldVec[i+1]*csNum2));
 }

@@ -73,7 +73,7 @@ class CSDist1DTab: public CSDist
                 }
                 else
                 {
-                    tempCSVec[i]+=CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[startEner], enerVec[startEner+1], CSVec[0], CSVec[1]);
+                    tempCSVec[i]+=max(0.,CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[startEner], enerVec[startEner+1], CSVec[0], CSVec[1]));
                 }
                 if((i+tempStartEner>=csEnerStartSet)&&(i+tempStartEner<csSizeSet+csEnerStartSet))
                 {
@@ -85,7 +85,7 @@ class CSDist1DTab: public CSDist
                 }
                 else
                 {
-                    tempCSVec[i]+=CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[csEnerStartSet], enerVec[csEnerStartSet+1], csVecSet[0], csVecSet[1]);
+                    tempCSVec[i]+=max(0.,CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[csEnerStartSet], enerVec[csEnerStartSet+1], csVecSet[0], csVecSet[1]));
                 }
             }
 

@@ -53,11 +53,14 @@ using namespace std;
 #include "include/NYield1DTab.hh"
 #include "include/NYieldPolyFunc.hh"
 
-#define numProcess 38
+#define numProcess 78
+#define numProcess2 38
 
 int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS, double &fileCount);
 
 bool DirectoryExists( const char* pzPath );
+
+void MakeReactionListFile(string outDirName, string isoName, int MTRList[], int MTRListPos[]);
 
 void MakeCSDataFile(string outDirName, string isoName, int MTRNum[], CSDist **csDist, bool ascii);
 
@@ -76,6 +79,15 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
                         YieldDist *dNYield, NDelayConstDist *nDelConst, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP, vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP,
                         vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP, vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP, vector<EnergyDist*> *enerDistP,
                         vector<int> MTRPList, double **energyAngVecP, bool ascii);
+
+void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist *nCSVec[],
+                        vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn, vector<int*> *enDisSchemeVec,
+                        vector<int*> *enDisRangeVec, vector<double*> *enDisEnApplVec, vector<double*> *enDisProbApplVec, vector<EnergyDist*> *enerDist,
+                        YieldDist *nYieldReac[], double *reacQValue, int *numAngEner, vector<AngularDist*> *angDist, bool *angDistInEnDistFlag,
+                        vector<AngularEnergyDist*> *angEnDist, CSDist **pCSVec, int *TYRList, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP,
+                        vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP, vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP,
+                        vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP,vector<EnergyDist*> *enerDistP, vector<int> MTRPList,
+                        double **energyAngVecP, bool ascii)
 
 void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist *nCSVec[],
                         vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn, vector<int*> *enDisSchemeVec,
@@ -127,6 +139,7 @@ void SetDataStream( string, std::stringstream&, bool);
 // Compare liams converted data to ours
 // Check photon enegy dist extraction in G4NDL and make sure that our approximation of mixing them is right
 // Check the delayed neutron energy distribution weight vector and see if we need to multiply it by the delayed group weight
+// fix approximations in the energy distribution translation
 // optimize data usage by only passing the sections of data containers and arrays needed within a particular function
 // do a final general sweep of the code
 // parrallelize code
@@ -304,7 +317,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //for the following arrays, the indicies 0,1,2,3 correspond to elastic, capture, fission and inelastic respectively
     //location arrays are set to -1 to show that the data has not been set
     // this array sets the order of the processes, must be manually enetered
-    int MTRList[numProcess]={2,102,18,19,20,21,38,4,5,11,16,17,22,23,24,25,28,29,32,33,34,37,41,42,44,45,103,104,105,106,107,108,111,112,113,115,116,117};
+    int MTRList[numProcess]={2,102,18,19,20,21,38,4,5,11,16,17,22,23,24,25,28,29,32,33,34,37,41,42,44,45,103,104,105,106,107,108,111,112,113,115,116,117,
+                                51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,78,79,80,81,82,83,84,85,86,87,88,89,90,91};
     int MTRListPos[numProcess]; //position of the reaction MT in MT list
     for(int i=0; i<numProcess; i++)
     {
@@ -570,6 +584,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 }
             }
         }
+
+        MakeReactionListFile(outDirName,isoName,MTRList,MTRListPos);
 
         //Extract the QVal block to get the reaction Q values
         if(count!=startQValBlock)
@@ -1876,7 +1892,15 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                             dNPromptYieldDist, dNTotalYieldDist, dNYield, nDelConst, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP, enDisRangeVecP,
                             enDisEnApplVecP, enDisProbApplVecP, enerDistP, MTRPList, energyAngVecP, ascii);
     }
-
+/*
+    if(MTRListPos[7]==-1)
+    {
+        CreateMT4(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
+                        enDisSchemeVec, enDisRangeVec, enDisEnApplVec, enDisProbApplVec, enerDist, nYieldReac, reacQValue, numAngEner, angDist,
+                        angDistInEnDistFlag, angEnDist, pCSVec, TYRList, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP,
+                        enDisRangeVecP, enDisEnApplVecP, enDisProbApplVecP, enerDistP, MTRPList, energyAngVecP, ascii);
+    }
+*/
     //Create Inelastic FS Files
     MakeInElasticFSFile(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
                         enDisSchemeVec, enDisRangeVec, enDisEnApplVec, enDisProbApplVec, enerDist, nYieldReac, reacQValue, numAngEner, angDist,
@@ -2086,6 +2110,59 @@ bool DirectoryExists( const char* pzPath )
     return bExists;
 }
 
+void MakeReactionListFile(string outDirName, string isoName, int MTRList[], int MTRListPos[])
+{
+    std::stringstream stream;
+    string dirName = outDirName+"ReactionList/";
+    if(!(DirectoryExists(dirName.c_str())))
+    {
+        system( ("mkdir -p -m=666 "+dirName).c_str());
+        if(DirectoryExists(dirName.c_str()))
+        {
+            cout << "created directory " << dirName << "\n" << endl;
+        }
+        else
+        {
+            cout << "\nError: could not create directory " << dirName << "\n" << endl;
+            return;
+        }
+    }
+    stream << "Fission Reactions Present: ";
+    for(int i=2; i<7; i++)
+    {
+        if(MTRListPos[i]!=-1)
+        {
+            stream << MTRList[i] << " ";
+        }
+    }
+    stream << "\n\nFission Reactions Not Present: ";
+    for(int i=2; i<7; i++)
+    {
+        if(MTRListPos[i]==-1)
+        {
+            stream << MTRList[i] << " ";
+        }
+    }
+
+    stream << "\n\nInelastic Reactions Present: ";
+    for(int i=7; i<numProcess; i++)
+    {
+        if(MTRListPos[i]!=-1)
+        {
+            stream << MTRList[i] << " ";
+        }
+    }
+    stream << "\n\nInelastic Reactions Not Present: ";
+    for(int i=7; i<numProcess; i++)
+    {
+        if(MTRListPos[i]==-1)
+        {
+            stream << MTRList[i] << " ";
+        }
+    }
+    SetDataStream( dirName+isoName, stream, true);
+}
+
 void MakeCSDataFile(string outDirName, string isoName, int MTRNum[], CSDist **csDist, bool ascii)
 {
     // creates the Cross-section data files
@@ -2176,22 +2253,41 @@ void MakeCSDataFile(string outDirName, string isoName, int MTRNum[], CSDist **cs
         stream.str("");
     }
 
-    stream << std::setw(14) << std::right << MTRNum[7] << '\n';
+    stream << std::setw(14) << std::right << 0 << '\n';
     stream << std::setw(14) << std::right << '0' << '\n';
 
     bool first=true;
     CSDist1DTab* sumCSData = NULL;
-    for(int i=7; i<numProcess; i++)
+    if(csDist[7])
     {
-        if(csDist[i])
+        for(int i=7; i<numProcess2; i++)
         {
-            if(first)
+            if(csDist[i])
             {
-                sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
-                first=false;
+                if(first)
+                {
+                    sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
+                    first=false;
+                }
+                else
+                    sumCSData->AddData(csDist[i]);
             }
-            else
-                sumCSData->AddData(csDist[i]);
+        }
+    }
+    else
+    {
+        for(int i=8; i<numProcess; i++)
+        {
+            if(csDist[i])
+            {
+                if(first)
+                {
+                    sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
+                    first=false;
+                }
+                else
+                    sumCSData->AddData(csDist[i]);
+            }
         }
     }
 
@@ -2207,7 +2303,7 @@ void MakeCSDataFile(string outDirName, string isoName, int MTRNum[], CSDist **cs
 
     if(isoName=="1_1_Hydrogen")
     {
-        stream << std::setw(14) << std::right << MTRNum[7] << '\n';
+        stream << std::setw(14) << std::right << 0 << '\n';
         stream << std::setw(14) << std::right << '0' << '\n';
         stream << std::setw(14) << std::right << '1' << '\n';
         stream << std::setw(14) << std::right << 2.000000e+07 << std::setw(14) << std::right << 0.0 << '\n';
@@ -2364,8 +2460,8 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
                 }
                 if(low<0)
                     low=0;
-                sum+=Interpolate(enDisSchemeVecP[capPReacIndex[i]][j][reg], energy, enDisEnApplVecP[capPReacIndex[i]][j][low], enDisEnApplVecP[capPReacIndex[i]][j][low+1],
-                                enDisProbApplVecP[capPReacIndex[i]][j][low], enDisProbApplVecP[capPReacIndex[i]][j][low+1]);
+                sum+=max(0.,Interpolate(enDisSchemeVecP[capPReacIndex[i]][j][reg], energy, enDisEnApplVecP[capPReacIndex[i]][j][low], enDisEnApplVecP[capPReacIndex[i]][j][low+1],
+                                enDisProbApplVecP[capPReacIndex[i]][j][low], enDisProbApplVecP[capPReacIndex[i]][j][low+1]));
             }
         }
         for(int j=0; j<int(enDisLawP[capPReacIndex[i]].size()); j++)
@@ -2374,7 +2470,7 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
             {
                 for(low=0; low<int(enDisNumLawApplNEnP[capPReacIndex[i]][j]); low++)
                 {
-                    enDisProbApplVecP[capPReacIndex[i]][j][low]=enDisProbApplVecP[capPReacIndex[i]][j][low]*pCSVec[capPReacIndex[i]]->Interpolate(enDisEnApplVecP[capPReacIndex[i]][j][low])/sum;
+                    enDisProbApplVecP[capPReacIndex[i]][j][low]=enDisProbApplVecP[capPReacIndex[i]][j][low]*max(0.,pCSVec[capPReacIndex[i]]->Interpolate(enDisEnApplVecP[capPReacIndex[i]][j][low]))/sum;
                 }
             }
         }
@@ -2629,8 +2725,8 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
                 }
                 if(low<0)
                     low=0;
-                sum+=Interpolate(enDisSchemeVecP[fisPReacIndex[i]][j][reg], energy, enDisEnApplVecP[fisPReacIndex[i]][j][low], enDisEnApplVecP[fisPReacIndex[i]][j][low+1],
-                                enDisProbApplVecP[fisPReacIndex[i]][j][low], enDisProbApplVecP[fisPReacIndex[i]][j][low+1]);
+                sum+=max(0.,Interpolate(enDisSchemeVecP[fisPReacIndex[i]][j][reg], energy, enDisEnApplVecP[fisPReacIndex[i]][j][low], enDisEnApplVecP[fisPReacIndex[i]][j][low+1],
+                                enDisProbApplVecP[fisPReacIndex[i]][j][low], enDisProbApplVecP[fisPReacIndex[i]][j][low+1]));
             }
         }
         for(int j=0; j<int(enDisLawP[fisPReacIndex[i]].size()); j++)
@@ -2639,7 +2735,7 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
             {
                 for(low=0; low<int(enDisNumLawApplNEnP[fisPReacIndex[i]][j]); low++)
                 {
-                    enDisProbApplVecP[fisPReacIndex[i]][j][low]=enDisProbApplVecP[fisPReacIndex[i]][j][low]*(pCSVec[fisPReacIndex[i]]->Interpolate(enDisEnApplVecP[fisPReacIndex[i]][j][low]))/sum;
+                    enDisProbApplVecP[fisPReacIndex[i]][j][low]=enDisProbApplVecP[fisPReacIndex[i]][j][low]*(max(0.,pCSVec[fisPReacIndex[i]]->Interpolate(enDisEnApplVecP[fisPReacIndex[i]][j][low])))/sum;
                 }
             }
         }
@@ -2825,114 +2921,233 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
     string fisDirName[4]={"FC/", "SC/","TC/","LC/"};
     for(int i=3; i<7; i++)
     {
-        //check the reference frame that the data has been gathered from
-        if(TYRList[i]>0)
-            frameFlag=1;
-
-        stream << std::setw(14) << std::right << 0. << std::setw(14) << std::right << 0. << endl;
-
-        nCSVec[i]->WriteG4NDLCSData(stream);
-
-        if(!angDistInEnDistFlag[i])
+        if(nCSVec[i])
         {
-            //prompt neutrons angular Distribution
-            stream << std::setw(14) << std::right << repFlag;
-            stream << std::setw(14) << std::right << isoMass;
-            stream << std::setw(14) << std::right << frameFlag;
-            stream << std::setw(14) << std::right << numAngEner[i] << '\n';
-            stream << std::setw(14) << std::right << 1 << '\n';
-            stream << std::setw(14) << std::right << numAngEner[i]<< std::setw(14) << std::right << 2 << '\n'; // assuming linear scheme here based off G4NDL examples
+            //check the reference frame that the data has been gathered from
+            if(TYRList[i]>0)
+                frameFlag=1;
 
-            //note angDist[0].size() does not necessarilly equal numAngEner[0] since if the distribution type is the same between adjacent
-            //incoming energy points we don't add another object to angDist, instead we add the point to the previous object
-            for(int j=0; j<int(angDist[i].size()); j++)
+            stream << std::setw(14) << std::right << 0. << std::setw(14) << std::right << 0. << endl;
+
+            nCSVec[i]->WriteG4NDLCSData(stream);
+
+            if(!angDistInEnDistFlag[i])
             {
-                angDist[i][j]->WriteG4NDLData(stream);
+                //prompt neutrons angular Distribution
+                stream << std::setw(14) << std::right << repFlag;
+                stream << std::setw(14) << std::right << isoMass;
+                stream << std::setw(14) << std::right << frameFlag;
+                stream << std::setw(14) << std::right << numAngEner[i] << '\n';
+                stream << std::setw(14) << std::right << 1 << '\n';
+                stream << std::setw(14) << std::right << numAngEner[i]<< std::setw(14) << std::right << 2 << '\n'; // assuming linear scheme here based off G4NDL examples
+
+                //note angDist[0].size() does not necessarilly equal numAngEner[0] since if the distribution type is the same between adjacent
+                //incoming energy points we don't add another object to angDist, instead we add the point to the previous object
+                for(int j=0; j<int(angDist[i].size()); j++)
+                {
+                    angDist[i][j]->WriteG4NDLData(stream);
+                }
+                stream << '\n' << endl;
             }
-            stream << '\n' << endl;
-        }
 
-        //Energy Distribution of prompt neutron
-        stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
+            //Energy Distribution of prompt neutron
+            stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
 
-        for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
-        {
-            if(enDisLaw[i][j]<44)
+            for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
             {
-                if(enDisLaw[i][j]==1)
-                    stream << std::setw(14) << std::right << 1 << '\n';
-                else if(enDisLaw[i][j]==3)
+                if(enDisLaw[i][j]<44)
                 {
-                    stream << std::setw(14) << std::right << 1 << '\n';
-                }
-                else if(enDisLaw[i][j]==4)
-                {
-                    stream << std::setw(14) << std::right << 1 << '\n';
-                }
-                else if(enDisLaw[i][j]==5)
-                {
-                    stream << std::setw(14) << std::right << 5 << '\n';
-                }
-                else if(enDisLaw[i][j]==7)
-                {
-                    stream << std::setw(14) << std::right << 7 << '\n';
-                }
-                else if(enDisLaw[i][j]==9)
-                {
-                    stream << std::setw(14) << std::right << 9 << '\n';
-                }
-                else if(enDisLaw[i][j]==11)
-                {
-                    stream << std::setw(14) << std::right << 11 << '\n';
-                }
-                else if(enDisLaw[i][j]==22)
-                {
-                    cout << "###: No direct translation for this law!" << endl;
-                    stream << std::setw(14) << std::right << 1 << '\n';
-                }
-                else if(enDisLaw[i][j]==24)
-                {
-                    cout << "###: No direct translation for this law!" << endl;
-                    stream << std::setw(14) << std::right << 1 << '\n';
-                }
+                    if(enDisLaw[i][j]==1)
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    else if(enDisLaw[i][j]==3)
+                    {
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==4)
+                    {
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==5)
+                    {
+                        stream << std::setw(14) << std::right << 5 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==7)
+                    {
+                        stream << std::setw(14) << std::right << 7 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==9)
+                    {
+                        stream << std::setw(14) << std::right << 9 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==11)
+                    {
+                        stream << std::setw(14) << std::right << 11 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==22)
+                    {
+                        cout << "###: No direct translation for this law!" << endl;
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    }
+                    else if(enDisLaw[i][j]==24)
+                    {
+                        cout << "###: No direct translation for this law!" << endl;
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    }
 
-                stream << std::setw(14) << std::right << enDisNumLawApplNEn[i][j] <<'\n';
-                stream << std::setw(14) << std::right << enDisNumLawApplNReg[i][j] <<'\n';
-                for(int k=0; k<enDisNumLawApplNReg[i][j]; k++)
-                {
-                    stream << std::setw(14) << std::right << enDisRangeVec[i][j][k] << std::right << enDisSchemeVec[i][j][k] << '\n';
-                }
-                for(int k=0; k<enDisNumLawApplNEn[i][j]; k++)
-                {
-                    stream << std::setw(14) << std::right << enDisEnApplVec[i][j][k] << std::right << enDisProbApplVec[i][j][k] << '\n';
-                }
+                    stream << std::setw(14) << std::right << enDisNumLawApplNEn[i][j] <<'\n';
+                    stream << std::setw(14) << std::right << enDisNumLawApplNReg[i][j] <<'\n';
+                    for(int k=0; k<enDisNumLawApplNReg[i][j]; k++)
+                    {
+                        stream << std::setw(14) << std::right << enDisRangeVec[i][j][k] << std::right << enDisSchemeVec[i][j][k] << '\n';
+                    }
+                    for(int k=0; k<enDisNumLawApplNEn[i][j]; k++)
+                    {
+                        stream << std::setw(14) << std::right << enDisEnApplVec[i][j][k] << std::right << enDisProbApplVec[i][j][k] << '\n';
+                    }
 
-                enerDist[i][count]->WriteG4NDLData(stream);
+                    enerDist[i][count]->WriteG4NDLData(stream);
+                }
+                else
+                    count--;
+            }
+            stream << '\n';
+
+            fileName = outDirName+"Fission/"+fisDirName[i-3]+isoName;
+            outDir = outDirName+"Fission/"+fisDirName[i-3];
+            if(!(DirectoryExists((outDir).c_str())))
+            {
+                system( ("mkdir -p -m=666 "+outDir).c_str());
+                if(DirectoryExists((outDir).c_str()))
+                {
+                    cout << "created directory " << outDir << "\n" << endl;
+                }
+                else
+                {
+                    cout << "\nError: could not create directory " << outDir << "\n" << endl;
+                    return;
+                }
+            }
+            SetDataStream( fileName, stream, ascii);
+
+            stream.clear();
+            stream.str("");
+        }
+    }
+}
+
+void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist *nCSVec[],
+                        vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn, vector<int*> *enDisSchemeVec,
+                        vector<int*> *enDisRangeVec, vector<double*> *enDisEnApplVec, vector<double*> *enDisProbApplVec, vector<EnergyDist*> *enerDist,
+                        YieldDist *nYieldReac[], double *reacQValue, int *numAngEner, vector<AngularDist*> *angDist, bool *angDistInEnDistFlag,
+                        vector<AngularEnergyDist*> *angEnDist, CSDist **pCSVec, int *TYRList, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP,
+                        vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP, vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP,
+                        vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP,vector<EnergyDist*> *enerDistP, vector<int> MTRPList,
+                        double **energyAngVecP, bool ascii)
+{
+
+    bool first=true;
+    CSDist1DTab* sumCSData = NULL;
+    for(int i=numProcess2; i<numProcess; i++)
+    {
+        if(csDist[i])
+        {
+            if(first)
+            {
+                sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
+                first=false;
             }
             else
-                count--;
+                sumCSData->AddData(csDist[i]);
         }
-        stream << '\n';
+    }
+    if(sumCSData)
+    {
+        MTRListPos[7]=1;
+        nCSVec[7] = sumCSData;
 
-        fileName = outDirName+"Fission/"+fisDirName[i-3]+isoName;
-        outDir = outDirName+"Fission/"+fisDirName[i-3];
-        if(!(DirectoryExists((outDir).c_str())))
+
+        for(int i=numProcess2; i<numProcess; i++)
         {
-            system( ("mkdir -p -m=666 "+outDir).c_str());
-            if(DirectoryExists((outDir).c_str()))
-            {
-                cout << "created directory " << outDir << "\n" << endl;
-            }
-            else
-            {
-                cout << "\nError: could not create directory " << outDir << "\n" << endl;
-                return;
-            }
-        }
-        SetDataStream( fileName, stream, ascii);
+            stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 15 << '\n';
+                //Here we adjust the tables defining the probability of an energy dist applicablitity to be normalized to 1 and then weighted by the cross-section
+                //this is an approximation that lets us put all the energy dist for every photon production reaction caused by this neutron production reaction
+                //into one big list. the normalization ensures that the probability sum between photon production reactions is the same and the weighting of the cross-sections
+                //ensures that the energy distributions from the more probable photon production reaction are more likely to be applied
+                int numPartials=0, low, reg;
+                double sum, energy;
+                bool first;
+                for(int j=0; j<int(inEPReacIndex.size()); j++)
+                {
+                    sum=0.;
+                    energy=0.;
+                    first=true;
+                    for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
+                    {
+                        if(enDisLawP[inEPReacIndex[j]][k]==2||enDisLawP[inEPReacIndex[j]][k]==4)
+                        {
+                            reg=0;
+                            if(first)
+                            {
+                                energy=enDisEnApplVecP[inEPReacIndex[j]][k][int((enDisNumLawApplNEnP[inEPReacIndex[j]][k])/2)];
+                                first=false;
+                            }
+                            numPartials++;
+                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
+                            {
+                                while(enDisRangeVecP[inEPReacIndex[j]][k][reg]<=low)
+                                    reg++;
+                                if(energy<enDisEnApplVecP[inEPReacIndex[j]][k][low])
+                                {
+                                    low--;
+                                    break;
+                                }
+                            }
+                            if(low<0)
+                                low=0;
+                            sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
+                                            enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]));
+                        }
+                    }
+                    for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
+                    {
+                        if(enDisLawP[inEPReacIndex[j]][k]==2||enDisLawP[inEPReacIndex[j]][k]==4)
+                        {
+                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
+                            {
+                                enDisProbApplVecP[inEPReacIndex[j]][k][low]=enDisProbApplVecP[inEPReacIndex[j]][k][low]*max(0.,pCSVec[inEPReacIndex[j]]->Interpolate(enDisEnApplVecP[inEPReacIndex[j]][k][low]))/sum;
+                            }
+                        }
+                    }
 
-        stream.clear();
-        stream.str("");
+                }
+                stream << std::setw(14) << std::right << numPartials << endl;
+                for(int j=0; j<int(inEPReacIndex.size()); j++)
+                {
+                    for(int k=0, count=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++, count++)
+                    {
+                        if(enDisLawP[inEPReacIndex[j]][k]==2||enDisLawP[inEPReacIndex[j]][k]==4)
+                        {
+                            stream << std::setw(14) << std::right << 0 << endl;
+                            stream << std::setw(14) << std::right << enDisNumLawApplNEnP[inEPReacIndex[j]][k] <<'\n';
+                            stream << std::setw(14) << std::right << enDisNumLawApplNRegP[inEPReacIndex[j]][k] <<'\n';
+                            for(int l=0; l<enDisNumLawApplNRegP[inEPReacIndex[j]][k]; l++)
+                            {
+                                stream << std::setw(14) << std::right << enDisRangeVecP[inEPReacIndex[j]][k][l] << std::right << enDisSchemeVecP[inEPReacIndex[j]][k][l] << '\n';
+                            }
+                            for(int l=0; l<enDisNumLawApplNEnP[inEPReacIndex[j]][k]; l++)
+                            {
+                                stream << std::setw(14) << std::right << enDisEnApplVecP[inEPReacIndex[j]][k][l] << std::right << enDisProbApplVecP[inEPReacIndex[j]][k][l] << '\n';
+                            }
+                            stream << '\n';
+                            enerDistP[inEPReacIndex[j]][count]->WriteG4NDLData(stream);
+                        }
+                        else
+                            count--;
+                    }
+                }
+                stream << '\n';
+        }
+
     }
 }
 
@@ -2955,7 +3170,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
     int frameFlag, repFlag, dirNum=0;
     vector<int> inEPReacIndex;
 
-    for(int i=7; i<numProcess; i++)
+    for(int i=7; i<numProcess2; i++)
     {
         dirNum++;
         if((dirNum==12)||(dirNum==16)||(dirNum==29)||(dirNum==32))
@@ -3216,8 +3431,8 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
                             if(low<0)
                                 low=0;
-                            sum+=Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
-                                            enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]);
+                            sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
+                                            enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]));
                         }
                     }
                     for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
@@ -3226,7 +3441,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                         {
                             for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
                             {
-                                enDisProbApplVecP[inEPReacIndex[j]][k][low]=enDisProbApplVecP[inEPReacIndex[j]][k][low]*pCSVec[inEPReacIndex[j]]->Interpolate(enDisEnApplVecP[inEPReacIndex[j]][k][low])/sum;
+                                enDisProbApplVecP[inEPReacIndex[j]][k][low]=enDisProbApplVecP[inEPReacIndex[j]][k][low]*max(0.,pCSVec[inEPReacIndex[j]]->Interpolate(enDisEnApplVecP[inEPReacIndex[j]][k][low]))/sum;
                             }
                         }
                     }
@@ -3487,8 +3702,8 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
                             if(low<0)
                                 low=0;
-                            sum+=Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
-                                            enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]);
+                            sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
+                                            enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]));
                         }
                     }
                     for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
@@ -3497,7 +3712,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                         {
                             for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
                             {
-                                enDisProbApplVecP[inEPReacIndex[j]][k][low]=enDisProbApplVecP[inEPReacIndex[j]][k][low]*pCSVec[inEPReacIndex[j]]->Interpolate(enDisEnApplVecP[inEPReacIndex[j]][k][low])/sum;
+                                enDisProbApplVecP[inEPReacIndex[j]][k][low]=enDisProbApplVecP[inEPReacIndex[j]][k][low]*max(0.,pCSVec[inEPReacIndex[j]]->Interpolate(enDisEnApplVecP[inEPReacIndex[j]][k][low]))/sum;
                             }
                         }
                     }

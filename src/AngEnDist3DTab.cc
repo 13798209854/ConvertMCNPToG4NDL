@@ -296,7 +296,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
                 }
                 if(l<0)
                     l=0;
-                outEnProbNew[i][j][k]=outEnerProb[i][k]*Interpolate(intScheme3[i][k], outAngNew[i][j], outAng[i][k][l], outAng[i][k][l+1], outAngProb[i][k][l], outAngProb[i][k][l+1]);
+                outEnProbNew[i][j][k]=outEnerProb[i][k]*max(0.,Interpolate(intScheme3[i][k], outAngNew[i][j], outAng[i][k][l], outAng[i][k][l+1], outAngProb[i][k][l], outAngProb[i][k][l+1]));
             }
         }
     }
