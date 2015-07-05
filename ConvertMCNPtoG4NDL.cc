@@ -87,7 +87,7 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
                         vector<AngularEnergyDist*> *angEnDist, CSDist **pCSVec, int *TYRList, int *numAngEnerP, vector<AngularDist*> *angDistP, vector<int> *enDisLawP,
                         vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP, vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP,
                         vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP,vector<EnergyDist*> *enerDistP, vector<int> MTRPList,
-                        double **energyAngVecP, bool ascii)
+                        double **energyAngVecP, bool ascii);
 
 void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist *nCSVec[],
                         vector<int> *enDisLaw, vector<int> *enDisNumLawApplNReg, vector<int> *enDisNumLawApplNEn, vector<int*> *enDisSchemeVec,
@@ -3049,15 +3049,15 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
     CSDist1DTab* sumCSData = NULL;
     for(int i=numProcess2; i<numProcess; i++)
     {
-        if(csDist[i])
+        if(nCSVec[i])
         {
             if(first)
             {
-                sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(csDist[i]));
+                sumCSData = new CSDist1DTab(dynamic_cast<CSDist1DTab*>(nCSVec[i]));
                 first=false;
             }
             else
-                sumCSData->AddData(csDist[i]);
+                sumCSData->AddData(nCSVec[i]);
         }
     }
     if(sumCSData)
@@ -3065,7 +3065,7 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
         MTRListPos[7]=1;
         nCSVec[7] = sumCSData;
 
-
+        /*
         for(int i=numProcess2; i<numProcess; i++)
         {
             stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 15 << '\n';
@@ -3147,6 +3147,7 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
                 }
                 stream << '\n';
         }
+        */
 
     }
 }
