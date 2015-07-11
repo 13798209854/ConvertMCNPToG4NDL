@@ -36,6 +36,36 @@ class AngDistP32EqBin: public AngularDist
                 angVec.back()[k]=temp;
             }
         }
+        /*
+        void AddData(AngularDist *secDist)
+        {
+
+        }
+        void AddData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2)
+        {
+
+        }
+        */
+        void AddAngleVec(vector<double> &temp, double incNEner)
+        {
+
+        }
+        double GetAngleProb(double incNEner, double angle)
+        {
+            return 0.;
+        }
+        void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
+        {
+
+        }
+        void SetData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2, double &temp)
+        {
+
+        }
+        string IdentifyYourSelf()
+        {
+            return "AngDistP32EqBin";
+        }
 
         /*int startAngPDist;
         int numIncEner;

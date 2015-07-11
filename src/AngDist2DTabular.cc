@@ -5,6 +5,11 @@ AngDist2DTabular::AngDist2DTabular()
     //ctor
 }
 
+AngDist2DTabular::AngDist2DTabular(AngularDist *angDist)
+{
+    angDist->SetData(incNEnerVec, angVec, angProbVec, intSchemeAng, numAngProb, temperature);
+}
+
 AngDist2DTabular::~AngDist2DTabular()
 {
     for(int i=0; i<int(angVec.size()); i++)

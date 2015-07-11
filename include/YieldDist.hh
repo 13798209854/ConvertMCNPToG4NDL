@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include "../include/CSDist.hh"
 
 using namespace std;
 /*
@@ -27,6 +28,9 @@ class YieldDist
         virtual void SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield)=0;
         virtual void SubtractPrompt(double *&totalCoeff, int &totalNumCoeff)=0;
         virtual void ConvertToLinDist(int *regEndPos, int &numIncEner, double *&incEner, double *&yield)=0;
+        virtual void AddData(YieldDist* nYield, CSDist** nCSDist, int index, int numProc, int numProc2)=0;
+        virtual void AddData(int &numRegsSum, int &numIncEnerSum, int* &regEndPosSum, int* &intSchemeSum, double* &incEnerSum, double* &yieldSum, CSDist** nCSDist, int index, int numProc, int numProc2)=0;
+        virtual void SetYieldData(int &numRegsSum, int &numIncEnerSum, int* &regEndPosSum, int* &intSchemeSum, double* &incEnerSum, double* &yieldSum, CSDist** nCSDist, int index, int numProc, int numProc2)=0;
         virtual string IdentifyYourSelf()=0;
 
         double Interpolate(int aScheme, double x, double x1, double x2, double y1, double y2) const;
