@@ -1835,7 +1835,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 else
                 {
                     angEnDistP[extractOrderP[i]].back()->ExtractMCNPData(stream, count);
-                    cout << "\n### Error: photon energy dependant angular data is being collected" << endl;
+                    cout << "\n### Error: photon energy dependant angular data is being collected, should use it to create FSMF6/ data in the MakeCaptureFSFile function" << endl;
                 }
 
 
