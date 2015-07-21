@@ -141,7 +141,7 @@ void SetDataStream( string, std::stringstream&, bool);
 // Check the delayed neutron energy distribution weight vector and see if we need to multiply it by the delayed group weight
 // fix approximations in the energy distribution translation
 // optimize data usage by only passing the sections of data containers and arrays needed within a particular function
-// do a final general sweep of the code
+// do a final general sweep of the code, check for loop statements, if statements and element indicies in particular
 // parrallelize code
 
 //Takes in a directory of MCNP cross-section libraries, converts the data into the G4NDL format and then outputs the information in a given directory
@@ -1632,13 +1632,13 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     if(distType!=1)
                     {
                         angDistP[extractOrderP[i]].push_back(new AngDist32EqualPBin());
-                        distType==1;
+                        distType=1;
                     }
                 }
                 else if(distType!=2)
                 {
                     angDistP[extractOrderP[i]].push_back(new AngDistIsoP());
-                    distType==2;
+                    distType=2;
                 }
                 angDistP[extractOrderP[i]].back()->SetPoint(stream, count, energyAngVecP[extractOrderP[i]][exOrderAngP[j]]);
 
@@ -3064,91 +3064,224 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
     {
         MTRListPos[7]=1;
         nCSVec[7] = sumCSData;
+        angDistInEnDistFlag[7] = false;
+        numAngEner[7] = 0;
 
-        /*
+        //Angular Distribution
+        if(!angDistInEnDistFlag[numProcess2])
+        {
+            /*
+            for(int i=numProcess2; i<numProcess; i++)
+            {
+                for(int j=0; j<int(angDist[i].size()); j++)
+                {
+                    if(first)
+                    {
+                        if(angDist[i][j]->IdentifyYourSelf()!="AngDist2DTabular")
+                        {
+                            angDist[7].push_back(new AngDist2DTabular(angDist[i][j]));
+                        }
+                        else
+                            angDist[7].push_back(angDist[i][j]);
+                        first=false;
+                    }
+                    else
+                        angDist[7][0]->AddData(angDist[i][j]);
+                }
+            }
+            */
+            angDist[7].push_back(new AngDist2DTabular());
+            angDist[7][0]->SumAngularData(angDist, nCSVec, numProcess2, numProcess, numAngEner[7]);
+        }
+
+        //Energy Distribution of prompt neutron
+        int numPartials=0, low, reg;
+        double sum, energy;
+        for(int j=numProcess2; j<numProcess; j++)
+        {
+            sum=0.;
+            energy=0.;
+            first=true;
+            for(int k=0; k<int(enDisLaw[j].size()); k++)
+            {
+                if(enDisLaw[j][k]<44)
+                {
+                    reg=0;
+                    if(first)
+                    {
+                        energy=enDisEnApplVec[j][k][int((enDisNumLawApplNEn[j][k])/2)];
+                        first=false;
+                    }
+                    numPartials++;
+                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    {
+                        while(enDisRangeVec[j][k][reg]<=low)
+                            reg++;
+                        if(energy<enDisEnApplVec[j][k][low])
+                        {
+                            low--;
+                            break;
+                        }
+                    }
+                    if(low<0)
+                        low=0;
+                    sum+=max(0.,Interpolate(enDisSchemeVec[j][k][reg], energy, enDisEnApplVec[j][k][low], enDisEnApplVec[j][k][low+1],
+                                    enDisProbApplVec[j][k][low], enDisProbApplVec[j][k][low+1]));
+                }
+            }
+
+            for(int k=0; k<int(enDisLaw[j].size()); k++)
+            {
+                if(enDisLaw[j][k]<44)
+                {
+                    enDisNumLawApplNReg[7].push_back(enDisNumLawApplNReg[j][k]);
+                    enDisNumLawApplNEn[7].push_back(enDisNumLawApplNEn[j][k]);
+                    enDisRangeVec[7].push_back(enDisRangeVec[j][k]);
+                    enDisSchemeVec[7].push_back(enDisSchemeVec[j][k]);
+                    enDisEnApplVec[7].push_back(enDisEnApplVec[j][k]);
+                    enDisProbApplVec[7].push_back(new double [enDisNumLawApplNEn[j][k]]);
+                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    {
+                        (enDisProbApplVec[7].back())[low]=enDisProbApplVec[j][k][low]*max(0.,nCSVec[j]->Interpolate(enDisEnApplVec[j][k][low]))/sum;
+                    }
+                }
+            }
+
+        }
+
         for(int i=numProcess2; i<numProcess; i++)
         {
-            stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 15 << '\n';
-                //Here we adjust the tables defining the probability of an energy dist applicablitity to be normalized to 1 and then weighted by the cross-section
-                //this is an approximation that lets us put all the energy dist for every photon production reaction caused by this neutron production reaction
-                //into one big list. the normalization ensures that the probability sum between photon production reactions is the same and the weighting of the cross-sections
-                //ensures that the energy distributions from the more probable photon production reaction are more likely to be applied
-                int numPartials=0, low, reg;
-                double sum, energy;
-                bool first;
-                for(int j=0; j<int(inEPReacIndex.size()); j++)
+            for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
+            {
+                if(enDisLaw[i][j]<44)
                 {
-                    sum=0.;
-                    energy=0.;
-                    first=true;
-                    for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
-                    {
-                        if(enDisLawP[inEPReacIndex[j]][k]==2||enDisLawP[inEPReacIndex[j]][k]==4)
-                        {
-                            reg=0;
-                            if(first)
-                            {
-                                energy=enDisEnApplVecP[inEPReacIndex[j]][k][int((enDisNumLawApplNEnP[inEPReacIndex[j]][k])/2)];
-                                first=false;
-                            }
-                            numPartials++;
-                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
-                            {
-                                while(enDisRangeVecP[inEPReacIndex[j]][k][reg]<=low)
-                                    reg++;
-                                if(energy<enDisEnApplVecP[inEPReacIndex[j]][k][low])
-                                {
-                                    low--;
-                                    break;
-                                }
-                            }
-                            if(low<0)
-                                low=0;
-                            sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
-                                            enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]));
-                        }
-                    }
-                    for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
-                    {
-                        if(enDisLawP[inEPReacIndex[j]][k]==2||enDisLawP[inEPReacIndex[j]][k]==4)
-                        {
-                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
-                            {
-                                enDisProbApplVecP[inEPReacIndex[j]][k][low]=enDisProbApplVecP[inEPReacIndex[j]][k][low]*max(0.,pCSVec[inEPReacIndex[j]]->Interpolate(enDisEnApplVecP[inEPReacIndex[j]][k][low]))/sum;
-                            }
-                        }
-                    }
+                    enDisLaw[7].push_back(enDisLaw[i][j]);
 
+                    enerDist[7].push_back(enerDist[i][count]);
                 }
-                stream << std::setw(14) << std::right << numPartials << endl;
-                for(int j=0; j<int(inEPReacIndex.size()); j++)
+                else
+                    count--;
+            }
+        }
+
+        // neutron energy-angular distribution
+
+        //this first part, adjusting the law applicability, is not needed or used so far but we keep it incase someone wants to use it later
+        for(int j=numProcess2; j<numProcess; j++)
+        {
+            sum=0.;
+            energy=0.;
+            first=true;
+            for(int k=0; k<int(enDisLaw[j].size()); k++)
+            {
+                if(enDisLaw[j][k]>24)
                 {
-                    for(int k=0, count=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++, count++)
+                    reg=0;
+                    if(first)
                     {
-                        if(enDisLawP[inEPReacIndex[j]][k]==2||enDisLawP[inEPReacIndex[j]][k]==4)
+                        energy=enDisEnApplVec[j][k][int((enDisNumLawApplNEn[j][k])/2)];
+                        first=false;
+                    }
+                    numPartials++;
+                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    {
+                        while(enDisRangeVec[j][k][reg]<=low)
+                            reg++;
+                        if(energy<enDisEnApplVec[j][k][low])
                         {
-                            stream << std::setw(14) << std::right << 0 << endl;
-                            stream << std::setw(14) << std::right << enDisNumLawApplNEnP[inEPReacIndex[j]][k] <<'\n';
-                            stream << std::setw(14) << std::right << enDisNumLawApplNRegP[inEPReacIndex[j]][k] <<'\n';
-                            for(int l=0; l<enDisNumLawApplNRegP[inEPReacIndex[j]][k]; l++)
-                            {
-                                stream << std::setw(14) << std::right << enDisRangeVecP[inEPReacIndex[j]][k][l] << std::right << enDisSchemeVecP[inEPReacIndex[j]][k][l] << '\n';
-                            }
-                            for(int l=0; l<enDisNumLawApplNEnP[inEPReacIndex[j]][k]; l++)
-                            {
-                                stream << std::setw(14) << std::right << enDisEnApplVecP[inEPReacIndex[j]][k][l] << std::right << enDisProbApplVecP[inEPReacIndex[j]][k][l] << '\n';
-                            }
-                            stream << '\n';
-                            enerDistP[inEPReacIndex[j]][count]->WriteG4NDLData(stream);
+                            low--;
+                            break;
+                        }
+                    }
+                    if(low<0)
+                        low=0;
+                    sum+=max(0.,Interpolate(enDisSchemeVec[j][k][reg], energy, enDisEnApplVec[j][k][low], enDisEnApplVec[j][k][low+1],
+                                    enDisProbApplVec[j][k][low], enDisProbApplVec[j][k][low+1]));
+                }
+            }
+
+            for(int k=0; k<int(enDisLaw[j].size()); k++)
+            {
+                if(enDisLaw[j][k]<24)
+                {
+                    enDisNumLawApplNReg[7].push_back(enDisNumLawApplNReg[j][k]);
+                    enDisNumLawApplNEn[7].push_back(enDisNumLawApplNEn[j][k]);
+                    enDisRangeVec[7].push_back(enDisRangeVec[j][k]);
+                    enDisSchemeVec[7].push_back(enDisSchemeVec[j][k]);
+                    enDisEnApplVec[7].push_back(enDisEnApplVec[j][k]);
+                    enDisProbApplVec[7].push_back(new double [enDisNumLawApplNEn[j][k]]);
+                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    {
+                        (enDisProbApplVec[7].back())[low]=enDisProbApplVec[j][k][low]*max(0.,nCSVec[j]->Interpolate(enDisEnApplVec[j][k][low]))/sum;
+                    }
+                }
+            }
+
+        }
+
+        first=true;
+        int countProc=0;
+        if(angDistInEnDistFlag[numProcess2])
+        {
+            angDistInEnDistFlag[7]=true;
+            reacQValue[7]=0.;
+            for(int i=numProcess2; i<numProcess; i++)
+            {
+                if(angEnDist[i].size()>0)
+                {
+                    // this is only used when a mean value from the energy dist cannot be extracted, we use the mean value here as they do in GEANT4
+                    reacQValue[7]+=reacQValue[i];
+                    countProc++;
+
+                    // weight the yield by the reactions cross-section relative to the sum of cross-section at each energy
+                    if(first)
+                    {
+                        if(nYieldReac[i]->IdentifyYourSelf()!="NYield1DTab")
+                        {
+                            YieldDist* temp = new NYield1DTab(nYieldReac[i]);
+                            delete nYieldReac[i];
+                            nYieldReac[i]=temp;
+                        }
+                        nYieldReac[7] = new NYield1DTab(nYieldReac[i], nCSVec, i, numProcess, numProcess2);
+                    }
+                    else
+                    {
+                        if(abs(TYRList[i])>100)
+                            nYieldReac[7]->AddData(nYieldReac[i], nCSVec, i, numProcess, numProcess2);
+                        else
+                        {
+                            nYieldReac[i] = new NYield1DTab(TYRList[i],0.,20., nCSVec, i, numProcess, numProcess2);
+                            nYieldReac[7]->AddData(nYieldReac[i], nCSVec, i, numProcess, numProcess2);
+                        }
+                    }
+                    for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
+                    {
+                        if(enDisLaw[i][j]>24)
+                        {
+                            enDisLaw[7].push_back(enDisLaw[i][j]);
+                            angEnDist[7].push_back(angEnDist[i][count]);
                         }
                         else
                             count--;
                     }
                 }
-                stream << '\n';
+            }
+            reacQValue[7]/=countProc;
         }
-        */
 
+
+        // instead of merging all of the photon data we simply rename the photon reactions so that they will be called for MT=4
+
+        for(int i=numProcess2; i<numProcess; i++)
+        {
+            for(int j=0; j<int(MTRPList.size()); j++)
+            {
+                if(int(MTRPList[j]/1000)==MTRList[i])
+                {
+                    MTRPList[j]=4000;
+                }
+            }
+        }
     }
 }
 
@@ -3188,7 +3321,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
         if(MTRListPos[i]!=-1)
         {
             //check the reference frame that the data has been gathered from
-            if(TYRList[MTRList[i]]>0)
+            if(TYRList[MTRListPos[i]]>0)
                 frameFlag=1;
 
             stream.fill(' ');
@@ -3239,7 +3372,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 5 << '\n';
                 stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
 
-                for(int j=0, count=0; i<int(enDisLaw[i].size()); j++, count++)
+                for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
                 {
                     if(enDisLaw[i][j]<44)
                     {
@@ -3286,7 +3419,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                         {
                             stream << std::setw(14) << std::right << enDisRangeVec[i][j][k] << std::right << enDisSchemeVec[i][j][k] << '\n';
                         }
-                        for(int k=0; k<enDisNumLawApplNEn[i][i]; k++)
+                        for(int k=0; k<enDisNumLawApplNEn[i][j]; k++)
                         {
                             stream << std::setw(14) << std::right << enDisEnApplVec[i][j][k] << std::right << enDisProbApplVec[i][j][k] << '\n';
                         }
@@ -3510,7 +3643,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 5 << '\n';
                 stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << enerDist[i].size() << endl;
 
-                for(int j=0, count=0; i<int(enDisLaw[i].size()); j++, count++)
+                for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
                 {
                     if(enDisLaw[i][j]<44)
                     {

@@ -24,7 +24,18 @@ class NYieldPolyFunc: public YieldDist
         void SubtractPrompt(double *&totalCoeff, int &totalNumCoeff);
         void SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield);
         void ConvertToLinDist(int *regEndPos, int &numIncEner, double *&incEner, double *&yield);
+        void AddData(YieldDist* nYield, CSDist** nCSDist, int index, int numProc, int numProc2)
+        {
 
+        }
+        void AddData(int &numRegsSum, int &numIncEnerSum, int* &regEndPosSum, int* &intSchemeSum, double* &incEnerSum, double* &yieldSum, CSDist** nCSDist, int index, int numProc, int numProc2)
+        {
+
+        }
+        void SetYieldData(int &numRegsSum, int &numIncEnerSum, int* &regEndPosSum, int* &intSchemeSum, double* &incEnerSum, double* &yieldSum, CSDist** nCSDist, int index, int numProc, int numProc2)
+        {
+
+        }
         string IdentifyYourSelf()
         {
             return "NYieldPolyFunc";
