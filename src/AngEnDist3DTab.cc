@@ -286,14 +286,14 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
                 int l;
-                for(l=0; l<numPAngPoints[i][k]; l++)
+                for(l=0; l<numPAngPoints[i][k]-1; l++)
                 {
                     if(outAng[i][k][l]>outAngNew[i][j])
                     {
-                        l--;
                         break;
                     }
                 }
+                l--;
                 if(l<0)
                     l=0;
                 outEnProbNew[i][j][k]=outEnerProb[i][k]*max(0.,Interpolate(intScheme3[i][k], outAngNew[i][j], outAng[i][k][l], outAng[i][k][l+1], outAngProb[i][k][l], outAngProb[i][k][l+1]));

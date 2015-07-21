@@ -43,7 +43,7 @@ void CSDist1DTabP::WriteG4NDLCSData(stringstream &stream )
 
     for(int j=0; j<CSVecSize; j++)
     {
-        stream << std::setw(14) << std::right << enerCSVec[j+startEner]*1000000;
+        stream << std::setw(14) << std::right << enerCSVec[j+startEner-1]*1000000;
         stream << std::setw(14) << std::right << CSVec[j];
         if(j%3==0)
             stream << '\n';
@@ -57,7 +57,7 @@ void CSDist1DTabP::WriteG4NDLYieldData(stringstream &stream )
 
     for(int i=0; i<CSVecSize; i++)
     {
-        stream << std::setw(14) << std::right << enerCSVec[i+startEner]*1000000;
+        stream << std::setw(14) << std::right << enerCSVec[i+startEner-1]*1000000;
         stream << std::setw(14) << std::right << CSVec[i]/csVec[i+startEner-csEnerStart];
     }
 }
@@ -70,14 +70,14 @@ string CSDist1DTabP::IdentifyYourSelf()
 double CSDist1DTabP::Interpolate(double x)
 {
     int i;
-    for(i=0; i<CSVecSize; i++)
+    for(i=0; i<CSVecSize-1; i++)
     {
         if(enerCSVec[i+startEner-1]>x)
         {
-            i--;
             break;
         }
     }
+    i--;
     if(i<0)
         i=0;
 

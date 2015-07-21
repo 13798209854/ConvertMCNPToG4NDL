@@ -69,11 +69,11 @@ class CSDist1DTab: public CSDist
                 }
                 else if(i+tempStartEner>=CSVecSize+startEner)
                 {
-                    tempCSVec[i]+=CSVec[CSVecSize+startEner-1];
+                    tempCSVec[i]+=CSVec[CSVecSize+startEner-2];
                 }
                 else
                 {
-                    tempCSVec[i]+=max(0.,CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[startEner], enerVec[startEner+1], CSVec[0], CSVec[1]));
+                    tempCSVec[i]+=max(0.,CSDist::Interpolate(1, enerVec[i+tempStartEner-1], enerVec[startEner-1], enerVec[startEner], CSVec[0], CSVec[1]));
                 }
                 if((i+tempStartEner>=csEnerStartSet)&&(i+tempStartEner<csSizeSet+csEnerStartSet))
                 {
@@ -81,11 +81,11 @@ class CSDist1DTab: public CSDist
                 }
                 else if(i+tempStartEner>=csSizeSet+csEnerStartSet)
                 {
-                    tempCSVec[i]+=csVecSet[csSizeSet+csEnerStartSet-1];
+                    tempCSVec[i]+=csVecSet[csSizeSet+csEnerStartSet-2];
                 }
                 else
                 {
-                    tempCSVec[i]+=max(0.,CSDist::Interpolate(1, enerVec[i+tempStartEner], enerVec[csEnerStartSet], enerVec[csEnerStartSet+1], csVecSet[0], csVecSet[1]));
+                    tempCSVec[i]+=max(0.,CSDist::Interpolate(1, enerVec[i+tempStartEner-1], enerVec[csEnerStartSet-1], enerVec[csEnerStartSet], csVecSet[0], csVecSet[1]));
                 }
             }
 

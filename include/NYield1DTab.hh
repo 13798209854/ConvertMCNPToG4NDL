@@ -110,7 +110,7 @@ class NYield1DTab: public YieldDist
                     reg=0;
                     for(int j=0; j<numIncEnerSum; j++)
                     {
-                        while(regEndPosSum[reg]<=j)
+                        while((regEndPosSum[reg]<=j)&&(numRegs-1>reg))
                             reg++;
                         if(incEnerSum[j]==incEner[i])
                         {
@@ -135,13 +135,13 @@ class NYield1DTab: public YieldDist
             for(int i=0; i<numIncEnerSum; i++)
             {
                 reg=0;
-                for(low=0; low<numIncEner; low++)
+                for(low=0; low<numIncEner-1; low++)
                 {
                     if(incEner[low]>incEnerSum[i])
                     {
                         break;
                     }
-                    while(regEndPos[reg]<=low)
+                    while((regEndPos[reg]<=low)&&(numRegs-1>reg))
                         reg++;
                 }
                 if(low!=0)

@@ -160,13 +160,13 @@ class AngDist32EqualPBin: public AngularDist
                     break;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size()-1)))
+            if((low==0)||(low==int(incNEnerVec.size())))
                 return;
             else
                 low--;
 
-            int i, j;
-            for(int low=0; low<(low+2); low++)
+            int i, j, cond=low+2;
+            for(; low<cond; low++)
             {
                 i=0; j=0;
                 while((i<32)&&(j<int(temp.size())))
@@ -203,15 +203,15 @@ class AngDist32EqualPBin: public AngularDist
                     break;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size()-1)))
+            if((low==0)||(low==int(incNEnerVec.size())))
                 return 0.;
             else
                 low--;
 
-            int count=0;
+            int count=0, cond=low+2;
             double sumProb;
             double prob[2];
-            for(int low=0; low<(low+2); low++)
+            for(; low<cond; low++)
             {
                 sumProb=0.;
                 lowAng=0;
@@ -222,6 +222,8 @@ class AngDist32EqualPBin: public AngularDist
                         break;
                     }
                 }
+                if(lowAng!=0)
+                    lowAng--;
 
                 for(int i=0; i<32; i++)
                 {

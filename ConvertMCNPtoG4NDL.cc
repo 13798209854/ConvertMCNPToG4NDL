@@ -53,10 +53,12 @@ using namespace std;
 #include "include/NYield1DTab.hh"
 #include "include/NYieldPolyFunc.hh"
 
+//total number of processes
 #define numProcess 78
+//total number of processes not including those that make up the MT4 reaction
 #define numProcess2 38
 
-int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS, double &fileCount);
+int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS);
 
 bool DirectoryExists( const char* pzPath );
 
@@ -114,7 +116,7 @@ void SetDataStream( string, std::stringstream&, bool);
 // X the energy in MCNP seems to be MeV by default, check that this is true and convert from MeV to eV
 // X all distinct photons share the same energy distribution for the same incoming neutron reaction, whereas in MCNP each photon reaction has its own energy distribution
 // X we can get around this by combining all of the energy distributions for every photon reaction into one big list with the the probability of each energy dist weighed
-// by its photon reactions cross-section or we can replace this section of MCNP data with the original G4NDL data
+//  by its photon reactions cross-section or we can replace this section of MCNP data with the original G4NDL data
 // X we don't use the out-going photons in our simulations thus far any ways so it doesn't matter too much if this is accurate
 // X the chronological ordering of the process extraction is probably unnessary since they seem to already be in order
 // X Check photon angular distribution
@@ -132,7 +134,7 @@ void SetDataStream( string, std::stringstream&, bool);
 // X add warnings to the code
 // X Check NU block extraction, unclear what XSS(JXS(2)) means versus JXS(2)
 // X Since there is no inelastic scattering for 1001 MCNP doesn't bother giving a cross-section file which causes G4STORK to not use the MCNP data for 1001,
-// we fixed this issue by forcing MCNP to output a cross-section file for the reaction which sets the probability of the reaction to zero for all incoming neutron energies
+//  we fixed this issue by forcing MCNP to output a cross-section file for the reaction which sets the probability of the reaction to zero for all incoming neutron energies
 
 // Create a script to go through and compare the doppler broadened G4NDL data to the MCNP cross-section data and make sure the converted data is giving the expected results
 // Create a script to go through and compare the G4NDL final state data to the final state data converted from MCNP to make sure the converted data is giving the expected results
@@ -140,13 +142,13 @@ void SetDataStream( string, std::stringstream&, bool);
 // Check photon enegy dist extraction in G4NDL and make sure that our approximation of mixing them is right
 // Check the delayed neutron energy distribution weight vector and see if we need to multiply it by the delayed group weight
 // fix approximations in the energy distribution translation
+//  see how we mix interpolation schemes in CreateMT4 for reference
 // optimize data usage by only passing the sections of data containers and arrays needed within a particular function
 // do a final general sweep of the code, check for loop statements, if statements and element indicies in particular
 // parrallelize code
 
 //Takes in a directory of MCNP cross-section libraries, converts the data into the G4NDL format and then outputs the information in a given directory
 
-double fileCount=0;
 int main(int argc, char **argv)
 {
     ElementNames elementNames;
@@ -219,9 +221,10 @@ int main(int argc, char **argv)
                     cout << "Opening file: " << fileName << endl;
                     // Gets data from the file and stores it into a data stream
                     GetDataStream(fileName, stream);
+
+                    stream >> word;
                     while(stream)
                     {
-                        stream >> word; fileCount++;
                         check1=word[int(word.find_last_of('.')+1)];
                         check2=word[int(word.find_last_of('.')+2)];
                         check3=word[int(word.find_last_of('.')+3)];
@@ -232,13 +235,13 @@ int main(int argc, char **argv)
                             if((check3=='c')||(check3=='d'))
                             {
                                 // gets the elastic, inelastic, fission and capture CS data for the isotope
-                                result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS, fileCount);
+                                result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS);
                             }
                         }
+                        stream >> word;
                     }
                     stream.str("");
                     stream.clear();
-                    fileCount=0;
                 }
             }
             closedir(dir);
@@ -251,9 +254,9 @@ int main(int argc, char **argv)
         GetDataStream(inFileName, stream);
         lib = inFileName[int(inFileName.length()-3)];
 
+        stream >> word;
         while(stream)
         {
-            stream >> word;
             check1=word[int(word.find_last_of('.')+1)];
             check2=word[int(word.find_last_of('.')+2)];
             check3=word[int(word.find_last_of('.')+3)];
@@ -264,9 +267,10 @@ int main(int argc, char **argv)
                 if((check3=='c')||(check3=='d'))
                 {
                     // gets the elastic, inelastic, fission and capture CS data for the isotope
-                    result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS, fileCount);
+                    result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS);
                 }
             }
+            stream >> word;
         }
     }
 
@@ -278,7 +282,7 @@ int main(int argc, char **argv)
 }
 
 //Extraxts the CS data from the MCNP file and stroes it in a G4NDL formatted file
-int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS, double &fileCount)
+int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double setTemperature, bool limitTemp, bool onlyCS)
 {
     //file name data
     ElementNames *elementNames;
@@ -442,7 +446,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //### in this section we extract incoming neutron energy, cross-section, neutron yield, and reaction Q-value data
 
     //Extract the ESZ Block to get the main incoming neutron energy grid and elastic cross-section
-    fileCount+=92;
     for(;count<startEnerTable; count++)
     {
         stream >> dummy;
@@ -995,8 +998,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 stream >> nextLawPos >> temp >> enDisLawDataPos; count=count+3;
                 if(floor(temp)!=ceil(temp))
                 {
-                //we are part way through law 61 when this occurs, we must be under counting somewhere back in the angular distribution data
-                    cout << "stop here" << endl;
+                    cout << "Error: counter is off at the location of primary neutron energy distribution data for reaction " << MTRList[extractOrder[i]] << " for isotope " << isoName << endl;
+                    cout << "NextLaw= " << temp << " should be an integer" << endl;
                 }
                 intTemp=int(temp);
                 enDisLaw[extractOrder[i]].push_back(intTemp);
@@ -1121,7 +1124,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
 
                 if(enDisLaw[extractOrder[i]].back()<44)
                     enerDist[extractOrder[i]].back()->ExtractMCNPData(stream, count);
-
                 else
                     angEnDist[extractOrder[i]].back()->ExtractMCNPData(stream, count);
 
@@ -1892,7 +1894,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                             dNPromptYieldDist, dNTotalYieldDist, dNYield, nDelConst, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP, enDisRangeVecP,
                             enDisEnApplVecP, enDisProbApplVecP, enerDistP, MTRPList, energyAngVecP, ascii);
     }
-/*
     if(MTRListPos[7]==-1)
     {
         CreateMT4(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
@@ -1900,7 +1901,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                         angDistInEnDistFlag, angEnDist, pCSVec, TYRList, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP,
                         enDisRangeVecP, enDisEnApplVecP, enDisProbApplVecP, enerDistP, MTRPList, energyAngVecP, ascii);
     }
-*/
     //Create Inelastic FS Files
     MakeInElasticFSFile(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
                         enDisSchemeVec, enDisRangeVec, enDisEnApplVec, enDisProbApplVec, enerDist, nYieldReac, reacQValue, numAngEner, angDist,
@@ -2087,8 +2087,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         if(angEnDistND[i]!=NULL)
             delete angEnDistND[i];
     }
-
-    fileCount+=count;
     return 0;
 }
 
@@ -2448,20 +2446,24 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
                     first=false;
                 }
                 numPartials++;
-                for(low=0; low<int(enDisNumLawApplNEnP[capPReacIndex[i]][j]); low++)
+                for(low=0; low<int(enDisNumLawApplNEnP[capPReacIndex[i]][j]-1); low++)
                 {
-                    while(enDisRangeVecP[capPReacIndex[i]][j][reg]<=low)
+                    while((enDisRangeVecP[capPReacIndex[i]][j][reg]<=low)&&(enDisNumLawApplNRegP[capPReacIndex[i]][j]-1>reg))
                         reg++;
                     if(energy<enDisEnApplVecP[capPReacIndex[i]][j][low])
                     {
-                        low--;
                         break;
                     }
                 }
+                low--;
                 if(low<0)
                     low=0;
-                sum+=max(0.,Interpolate(enDisSchemeVecP[capPReacIndex[i]][j][reg], energy, enDisEnApplVecP[capPReacIndex[i]][j][low], enDisEnApplVecP[capPReacIndex[i]][j][low+1],
+
+                if(enDisNumLawApplNEnP[capPReacIndex[i]][j]>1)
+                    sum+=max(0.,Interpolate(enDisSchemeVecP[capPReacIndex[i]][j][reg], energy, enDisEnApplVecP[capPReacIndex[i]][j][low], enDisEnApplVecP[capPReacIndex[i]][j][low+1],
                                 enDisProbApplVecP[capPReacIndex[i]][j][low], enDisProbApplVecP[capPReacIndex[i]][j][low+1]));
+                else
+                    sum+=enDisProbApplVecP[capPReacIndex[i]][j][0];
             }
         }
         for(int j=0; j<int(enDisLawP[capPReacIndex[i]].size()); j++)
@@ -2713,20 +2715,24 @@ void MakeFissionFSFile(string outDirName, string isoName, double isoMass, double
                     first=false;
                 }
                 numPartials++;
-                for(low=0; low<int(enDisNumLawApplNEnP[fisPReacIndex[i]][j]); low++)
+                for(low=0; low<int(enDisNumLawApplNEnP[fisPReacIndex[i]][j]-1); low++)
                 {
-                    while(enDisRangeVecP[fisPReacIndex[i]][j][reg]<=low)
+                    while((enDisRangeVecP[fisPReacIndex[i]][j][reg]<=low)&&(enDisNumLawApplNRegP[fisPReacIndex[i]][j]-1>reg))
                         reg++;
                     if(energy<enDisEnApplVecP[fisPReacIndex[i]][j][low])
                     {
-                        low--;
                         break;
                     }
                 }
+                low--;
                 if(low<0)
                     low=0;
-                sum+=max(0.,Interpolate(enDisSchemeVecP[fisPReacIndex[i]][j][reg], energy, enDisEnApplVecP[fisPReacIndex[i]][j][low], enDisEnApplVecP[fisPReacIndex[i]][j][low+1],
+
+                if(enDisNumLawApplNEnP[fisPReacIndex[i]][j])
+                    sum+=max(0.,Interpolate(enDisSchemeVecP[fisPReacIndex[i]][j][reg], energy, enDisEnApplVecP[fisPReacIndex[i]][j][low], enDisEnApplVecP[fisPReacIndex[i]][j][low+1],
                                 enDisProbApplVecP[fisPReacIndex[i]][j][low], enDisProbApplVecP[fisPReacIndex[i]][j][low+1]));
+                else
+                    sum+=enDisProbApplVecP[fisPReacIndex[i]][j][0];
             }
         }
         for(int j=0; j<int(enDisLawP[fisPReacIndex[i]].size()); j++)
@@ -3113,16 +3119,16 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
                         first=false;
                     }
                     numPartials++;
-                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    for(low=0; low<int(enDisNumLawApplNEn[j][k]-1); low++)
                     {
-                        while(enDisRangeVec[j][k][reg]<=low)
+                        while((enDisRangeVec[j][k][reg]<=low)&&(enDisNumLawApplNReg[j][k]-1>reg))
                             reg++;
                         if(energy<enDisEnApplVec[j][k][low])
                         {
-                            low--;
                             break;
                         }
                     }
+                    low--;
                     if(low<0)
                         low=0;
                     sum+=max(0.,Interpolate(enDisSchemeVec[j][k][reg], energy, enDisEnApplVec[j][k][low], enDisEnApplVec[j][k][low+1],
@@ -3183,16 +3189,16 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
                         first=false;
                     }
                     numPartials++;
-                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    for(low=0; low<int(enDisNumLawApplNEn[j][k]-1); low++)
                     {
-                        while(enDisRangeVec[j][k][reg]<=low)
+                        while((enDisRangeVec[j][k][reg]<=low)&&(enDisNumLawApplNReg[j][k]-1>reg))
                             reg++;
                         if(energy<enDisEnApplVec[j][k][low])
                         {
-                            low--;
                             break;
                         }
                     }
+                    low--;
                     if(low<0)
                         low=0;
                     sum+=max(0.,Interpolate(enDisSchemeVec[j][k][reg], energy, enDisEnApplVec[j][k][low], enDisEnApplVec[j][k][low+1],
@@ -3553,20 +3559,24 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                                 first=false;
                             }
                             numPartials++;
-                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
+                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]-1); low++)
                             {
-                                while(enDisRangeVecP[inEPReacIndex[j]][k][reg]<=low)
+                                while((enDisRangeVecP[inEPReacIndex[j]][k][reg]<=low)&&(enDisNumLawApplNReg[inEPReacIndex[j]][k]-1>reg))
                                     reg++;
                                 if(energy<enDisEnApplVecP[inEPReacIndex[j]][k][low])
                                 {
-                                    low--;
                                     break;
                                 }
                             }
+                            low--;
                             if(low<0)
                                 low=0;
-                            sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
+
+                            if(enDisNumLawApplNEnP[inEPReacIndex[j]][k]>1)
+                                sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
                                             enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]));
+                            else
+                                sum+=enDisProbApplVecP[inEPReacIndex[j]][k][0];
                         }
                     }
                     for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)
@@ -3824,20 +3834,23 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                                 first=false;
                             }
                             numPartials++;
-                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]); low++)
+                            for(low=0; low<int(enDisNumLawApplNEnP[inEPReacIndex[j]][k]-1); low++)
                             {
-                                while(enDisRangeVecP[inEPReacIndex[j]][k][reg]<=low)
+                                while((enDisRangeVecP[inEPReacIndex[j]][k][reg]<=low)&&(enDisNumLawApplNReg[inEPReacIndex[j]][k]-1>reg))
                                     reg++;
                                 if(energy<enDisEnApplVecP[inEPReacIndex[j]][k][low])
                                 {
-                                    low--;
                                     break;
                                 }
                             }
+                            low--;
                             if(low<0)
                                 low=0;
-                            sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
+                            if(enDisNumLawApplNEnP[inEPReacIndex[j]][k]>1)
+                                sum+=max(0.,Interpolate(enDisSchemeVecP[inEPReacIndex[j]][k][reg], energy, enDisEnApplVecP[inEPReacIndex[j]][k][low], enDisEnApplVecP[inEPReacIndex[j]][k][low+1],
                                             enDisProbApplVecP[inEPReacIndex[j]][k][low], enDisProbApplVecP[inEPReacIndex[j]][k][low+1]));
+                            else
+                                sum+=enDisProbApplVecP[inEPReacIndex[j]][k][0];
                         }
                     }
                     for(int k=0; k<int(enDisLawP[inEPReacIndex[j]].size()); k++)

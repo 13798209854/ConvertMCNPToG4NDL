@@ -177,7 +177,7 @@ double EnerDistConTab::GetAverageOutEnergy()
 {
     int i;
     double probSum=0, avgEner1=0, avgEner2=0;
-    for(i=0; i<numIncEner; i++)
+    for(i=0; i<numIncEner-1; i++)
     {
         // assume average incoming neutron energy is 1eV
         if(incEner[i]>1.0e-06)

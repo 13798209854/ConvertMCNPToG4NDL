@@ -15,7 +15,8 @@ CSDist1DTab::CSDist1DTab(double *energyVec, int numCSEner)
 
 CSDist1DTab::~CSDist1DTab()
 {
-    delete [] CSVec;
+    if(CSVec)
+        delete [] CSVec;
 }
 
 void CSDist1DTab::ExtractMCNPData(stringstream &stream, int &count)
@@ -65,14 +66,14 @@ string CSDist1DTab::IdentifyYourSelf()
 double CSDist1DTab::Interpolate(double x)
 {
     int i;
-    for(i=0; i<CSVecSize; i++)
+    for(i=0; i<CSVecSize-1; i++)
     {
         if(enerVec[i+startEner-1]>x)
         {
-            i--;
             break;
         }
     }
+    i--;
     if(i<0)
         i=0;
 

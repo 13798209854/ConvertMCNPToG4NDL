@@ -120,13 +120,13 @@ void NYield1DTab::SubtractPrompt(int totalNumIncEner, double *totalIncEner, doub
     for(int i=0; i<totalNumIncEner; i++)
     {
         reg=0;
-        for(low=0; low<numIncEner; low++)
+        for(low=0; low<numIncEner-1; low++)
         {
             if(incEner[low]>totalIncEner[i])
             {
                 break;
             }
-            while(regEndPos[reg]<=low)
+            while((regEndPos[reg]<=low)&&(numRegs-1>reg))
                 reg++;
         }
         if(low!=0)

@@ -90,7 +90,7 @@ class AngDistIso: public AngularDist
         void AddAngleVec(vector<double> &temp, double incNEner)
         {
             int low=0;
-            for(; low<int(incNEnerVec.size()); low++)
+            for(; low<int(incNEnerVec.size()-1); low++)
             {
                 if(incNEnerVec[low]>incNEner)
                 {
@@ -102,9 +102,9 @@ class AngDistIso: public AngularDist
             else
                 low--;
 
-            int i, j;
+            int i, j, cond=low+2;
             double angVec[2]={-1,1};
-            for(int low=0; low<(low+2); low++)
+            for(; low<cond; low++)
             {
                 i=0; j=0;
                 while((i<2)&&(j<int(temp.size())))
@@ -141,7 +141,7 @@ class AngDistIso: public AngularDist
                     break;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size()-1)))
+            if((low==0)||(low==int(incNEnerVec.size())))
                 return 0.;
 
             return 1.0;

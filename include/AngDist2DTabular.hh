@@ -177,13 +177,13 @@ class AngDist2DTabular: public AngularDist
                     break;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size()-1)))
+            if((low==0)||(low==int(incNEnerVec.size())))
                 return;
             else
                 low--;
 
-            int i, j;
-            for(int low=0; low<(low+2); low++)
+            int i, j, cond=low+2;
+            for(; low<cond; low++)
             {
                 i=0; j=0;
                 while((i<numAngProb[low])&&(j<int(temp.size())))
@@ -219,19 +219,19 @@ class AngDist2DTabular: public AngularDist
                     break;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size()-1)))
+            if((low==0)||(low==int(incNEnerVec.size())))
                 return 0.;
             else
                 low--;
 
-            int count=0;
+            int count=0, cond=low+2;
             double sumProb;
             double prob[2];
-            for(int low=0; low<(low+2); low++)
+            for(; low<cond; low++)
             {
                 sumProb=0.;
                 lowAng=0;
-                for(; lowAng<numAngProb[low]; lowAng++)
+                for(; lowAng<numAngProb[low]-1; lowAng++)
                 {
                     if(angVec[low][lowAng]>angle)
                     {
@@ -249,7 +249,7 @@ class AngDist2DTabular: public AngularDist
                 prob[count]=AngularDist::Interpolate(intSchemeAng[low], angle, angVec[low][lowAng], angVec[low][lowAng+1], angProbVec[low][lowAng], angProbVec[low][lowAng+1])/sumProb;
                 count++;
             }
-            return AngularDist::Interpolate(intSchemeAng[low], incNEner, incNEnerVec[low], incNEnerVec[low+1], prob[0], prob[1]);
+            return AngularDist::Interpolate(intSchemeAng[low-2], incNEner, incNEnerVec[low-2], incNEnerVec[low-1], prob[0], prob[1]);
         }
 
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
@@ -261,11 +261,13 @@ class AngDist2DTabular: public AngularDist
             {
                 if(angVec[i])
                     delete [] angVec[i];
+                angVec[i]=NULL;
             }
             for(int i=0; i<int(angProbVec.size()); i++)
             {
                 if(angProbVec[i])
                     delete [] angProbVec[i];
+                angProbVec[i]=NULL;
             }
 
             vector<double> temp;
@@ -277,15 +279,22 @@ class AngDist2DTabular: public AngularDist
                 }
             }
             numAngEner=incNEnerVec.size();
+
+            //we set the interpolation to always be linear
+            intSchemeAng.assign(numAngEner,2);
+
             for(int m=0; m<int(incNEnerVec.size()); m++)
             {
                 sumCS=0.;
                 for(int i=startList; i<endList; i++)
                 {
-                    sumCS+=max(0.,nCSDistList[i]->Interpolate(incNEnerVec[m]));
-                    for(int j=0; j<int(angDistList[i].size()); j++)
+                    if(nCSDistList[i])
                     {
-                        angDistList[i][j]->AddAngleVec(temp, incNEnerVec[m]);
+                        sumCS+=max(0.,nCSDistList[i]->Interpolate(incNEnerVec[m]));
+                        for(int j=0; j<int(angDistList[i].size()); j++)
+                        {
+                            angDistList[i][j]->AddAngleVec(temp, incNEnerVec[m]);
+                        }
                     }
                 }
                 numAngProb.push_back(temp.size());
@@ -301,10 +310,13 @@ class AngDist2DTabular: public AngularDist
                 {
                     for(int i=startList; i<endList; i++)
                     {
-                        curCS = max(0.,nCSDistList[i]->Interpolate(incNEnerVec[m]));
-                        for(int j=0; j<int(angDistList[i].size()); j++)
+                        if(nCSDistList[i])
                         {
-                            angProbVec.back()[k]+=curCS*angDistList[i][j]->GetAngleProb(incNEnerVec[m], angVec.back()[k])/sumCS;
+                            curCS = max(0.,nCSDistList[i]->Interpolate(incNEnerVec[m]));
+                            for(int j=0; j<int(angDistList[i].size()); j++)
+                            {
+                                angProbVec.back()[k]+=curCS*angDistList[i][j]->GetAngleProb(incNEnerVec[m], angVec.back()[k])/sumCS;
+                            }
                         }
                     }
                 }
