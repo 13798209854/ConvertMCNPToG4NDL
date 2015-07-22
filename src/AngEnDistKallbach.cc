@@ -15,8 +15,6 @@ AngEnDistKallbach::~AngEnDistKallbach()
         delete [] intScheme2;
     if(distPos)
         delete [] distPos;
-    if(numPEnerPoints)
-        delete [] numPEnerPoints;
     if(incEner)
         delete [] incEner;
     if(numDiscreteEnerPoints)
@@ -43,6 +41,8 @@ AngEnDistKallbach::~AngEnDistKallbach()
             delete [] angDistSlope[i];
     }
 
+    if(numPEnerPoints)
+        delete [] numPEnerPoints;
     if(outAngProb)
         delete [] outAngProb;
     if(outEner)

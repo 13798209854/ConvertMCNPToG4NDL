@@ -292,7 +292,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     int Znum, isoNum;
     double isoMass, dataTemperature;
     int yieldDistType;
-    bool promptYieldFlag=false, totalYieldFlag=false;
+    bool promptYieldFlag=false, totalYieldFlag=false, createMT4Flag=false;
 
     //fixed location data
     int numCSEner=0, numReactions=0, numReacSecN=0, numPReactions=0, numDNPrecursorFam=0;
@@ -1896,6 +1896,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     }
     if(MTRListPos[7]==-1)
     {
+        createMT4Flag=true;
         CreateMT4(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
                         enDisSchemeVec, enDisRangeVec, enDisEnApplVec, enDisProbApplVec, enerDist, nYieldReac, reacQValue, numAngEner, angDist,
                         angDistInEnDistFlag, angEnDist, pCSVec, TYRList, numAngEnerP, angDistP, enDisLawP, enDisNumLawApplNRegP, enDisNumLawApplNEnP, enDisSchemeVecP,
@@ -1949,8 +1950,19 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         }
         for(int j=0; j<int(enerDist[i].size()); j++)
         {
-            if(enerDist[i][j]!=NULL)
-                delete enerDist[i][j];
+            if(!(createMT4Flag&&(i>=numProcess2)))
+            {
+                if(enerDist[i][j]!=NULL)
+                    delete enerDist[i][j];
+            }
+        }
+        for(int j=0; j<int(angEnDist[i].size()); j++)
+        {
+            if(!(createMT4Flag&&(i>=numProcess2)))
+            {
+                if(angEnDist[i][j]!=NULL)
+                    delete angEnDist[i][j];
+            }
         }
     }
 
@@ -2010,6 +2022,11 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 if(enDisRangeVecP[i][j]!=NULL)
                     delete [] enDisRangeVecP[i][j];
             }
+            for(int j=0; j<int(enDisEnApplVecP[i].size()); j++)
+            {
+                if(enDisEnApplVecP[i][j]!=NULL)
+                    delete [] enDisEnApplVecP[i][j];
+            }
             for(int j=0; j<int(enDisProbApplVecP[i].size()); j++)
             {
                 if(enDisProbApplVecP[i][j]!=NULL)
@@ -2020,10 +2037,10 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                 if(enerDistP[i][j]!=NULL)
                     delete enerDistP[i][j];
             }
-            for(int j=0; j<int(enDisEnApplVecP[i].size()); j++)
+            for(int j=0; j<int(angEnDistP[i].size()); j++)
             {
-                if(enDisEnApplVecP[i][j]!=NULL)
-                    delete [] enDisEnApplVecP[i][j];
+                if(angEnDistP[i][j]!=NULL)
+                    delete angEnDistP[i][j];
             }
         }
 
@@ -3142,9 +3159,21 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
                 {
                     enDisNumLawApplNReg[7].push_back(enDisNumLawApplNReg[j][k]);
                     enDisNumLawApplNEn[7].push_back(enDisNumLawApplNEn[j][k]);
-                    enDisRangeVec[7].push_back(enDisRangeVec[j][k]);
-                    enDisSchemeVec[7].push_back(enDisSchemeVec[j][k]);
-                    enDisEnApplVec[7].push_back(enDisEnApplVec[j][k]);
+                    enDisRangeVec[7].push_back(new int[enDisNumLawApplNReg[j][k]]);
+                    for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
+                    {
+                        enDisRangeVec[7].back()[i]=enDisRangeVec[j][k][i];
+                    }
+                    enDisSchemeVec[7].push_back(new int[enDisNumLawApplNReg[j][k]]);
+                    for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
+                    {
+                        enDisSchemeVec[7].back()[i]=enDisSchemeVec[j][k][i];
+                    }
+                    enDisEnApplVec[7].push_back(new double[enDisNumLawApplNEn[j][k]]);
+                    for(int i=0; i<enDisNumLawApplNEn[j][k]; i++)
+                    {
+                        enDisEnApplVec[7].back()[i]=enDisEnApplVec[j][k][i];
+                    }
                     enDisProbApplVec[7].push_back(new double [enDisNumLawApplNEn[j][k]]);
                     for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
                     {
@@ -3212,9 +3241,21 @@ void CreateMT4(int *MTRListPos, string outDirName, string isoName, int isoNum, d
                 {
                     enDisNumLawApplNReg[7].push_back(enDisNumLawApplNReg[j][k]);
                     enDisNumLawApplNEn[7].push_back(enDisNumLawApplNEn[j][k]);
-                    enDisRangeVec[7].push_back(enDisRangeVec[j][k]);
-                    enDisSchemeVec[7].push_back(enDisSchemeVec[j][k]);
-                    enDisEnApplVec[7].push_back(enDisEnApplVec[j][k]);
+                    enDisRangeVec[7].push_back(new int[enDisNumLawApplNReg[j][k]]);
+                    for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
+                    {
+                        enDisRangeVec[7].back()[i]=enDisRangeVec[j][k][i];
+                    }
+                    enDisSchemeVec[7].push_back(new int[enDisNumLawApplNReg[j][k]]);
+                    for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
+                    {
+                        enDisSchemeVec[7].back()[i]=enDisSchemeVec[j][k][i];
+                    }
+                    enDisEnApplVec[7].push_back(new double[enDisNumLawApplNEn[j][k]]);
+                    for(int i=0; i<enDisNumLawApplNEn[j][k]; i++)
+                    {
+                        enDisEnApplVec[7].back()[i]=enDisEnApplVec[j][k][i];
+                    }
                     enDisProbApplVec[7].push_back(new double [enDisNumLawApplNEn[j][k]]);
                     for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
                     {
@@ -3700,7 +3741,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                         {
                             stream << std::setw(14) << std::right << enDisRangeVec[i][j][k] << std::right << enDisSchemeVec[i][j][k] << '\n';
                         }
-                        for(int k=0; k<enDisNumLawApplNEn[i][i]; k++)
+                        for(int k=0; k<enDisNumLawApplNEn[i][j]; k++)
                         {
                             stream << std::setw(14) << std::right << enDisEnApplVec[i][j][k] << std::right << enDisProbApplVec[i][j][k] << '\n';
                         }
