@@ -88,7 +88,7 @@ void EnerDistEqPEnerBins::WriteG4NDLData(stringstream &stream)
 {
     // this is MCNP law 1
     // convert this to G4NDL theRepresentationType=1
-
+    double enerRange;
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numReg << '\n';
     for(int i=0; i<numReg; i++)
     {
@@ -98,15 +98,50 @@ void EnerDistEqPEnerBins::WriteG4NDLData(stringstream &stream)
     for(int i=0; i<int(numIncEner); i++)
     {
         // note the histogram scheme is right biased, we checked
-        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << numOutEnerPerInc << '\n';
-        stream << std::setw(14) << std::right << 1 << '\n';
-        stream << std::setw(14) << std::right << numOutEnerPerInc << std::setw(14) << std::right << 1 << '\n';
-
-        for(int j=0; j<int(numOutEnerPerInc); j++)
+        if(numOutEnerPerInc>2)
         {
-            stream << std::setw(14) << std::right << outEner[i][j]*1000000 << std::setw(14) << std::right << 1/(numOutEnerPerInc*(outEner[i][j+1]-outEner[i][j]));
-            if(j%3==0)
-                stream << '\n';
+            stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << numOutEnerPerInc << '\n';
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numOutEnerPerInc << std::setw(14) << std::right << 1 << '\n';
+
+            enerRange=0.;
+            for(int j=0; j<int(numOutEnerPerInc-1); j++)
+            {
+                stream << std::setw(14) << std::right << outEner[i][j]*1000000 << std::setw(14) << std::right << 1.0/(numOutEnerPerInc*(outEner[i][j+1]-outEner[i][j]));
+                if(j>0)
+                {
+                    enerRange += outEner[i][j]-outEner[i][j-1];
+                }
+                if((j%3==0)||(j==numOutEnerPerInc-2))
+                    stream << '\n';
+            }
+            if(enerRange==0.)
+            {
+                cout << "break here" << '\n';
+            }
+        }
+        else if(numOutEnerPerInc<2)
+        {
+            stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << 0 << '\n';
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << 0 << std::setw(14) << std::right << 1 << '\n';
+        }
+        else
+        {
+            stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << 2 << '\n';
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << 2 << std::setw(14) << std::right << 1 << '\n';
+
+            for(int j=0; j<int(2); j++)
+            {
+                stream << std::setw(14) << std::right << outEner[i][j]*1000000 << std::setw(14) << std::right << 1.0/2;
+                if((j>0)&&(outEner[i][j]==outEner[i][j-1]))
+                {
+                    cout << "break here" << '\n';
+                }
+                if((j%3==0)||(j==1))
+                    stream << '\n';
+            }
         }
     }
 }

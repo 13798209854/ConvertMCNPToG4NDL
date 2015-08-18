@@ -20,35 +20,138 @@ class AngDistIsoP: public AngularDist
         virtual ~AngDistIsoP();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
+        bool CheckData()
+        {
+            return true;
+        }
         void SetPoint(stringstream &stream, int &count, double incNEner)
         {
             incNEnerVec.push_back(incNEner);
         }
-        /*
-        void AddData(AngularDist *secDist)
+        void AddEnergyVec(vector<double> &incNEnerVecSum)
         {
+            if(incNEnerVec.size()==0)
+            {
+                incNEnerVec.push_back(0.);
+                incNEnerVec.push_back(20);
+            }
+            int i=0, j=0;
+            while((i<int(incNEnerVec.size()))&&(j<int(incNEnerVecSum.size())))
+            {
+                if(incNEnerVec[i]<incNEnerVecSum[j])
+                {
+                    incNEnerVecSum.insert(incNEnerVecSum.begin()+j, incNEnerVec[i]);
+                    i++; j++;
+                }
+                else if(incNEnerVec[i]>incNEnerVecSum[j])
+                {
+                    j++;
+                }
+                else
+                {
+                    i++; j++;
+                }
+            }
 
+            for(;i<int(incNEnerVec.size());i++)
+            {
+                incNEnerVecSum.push_back(incNEnerVec[i]);
+            }
         }
-        void AddData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2)
-        {
-
-        }
-        */
         void AddAngleVec(vector<double> &temp, double incNEner)
         {
+            if(incNEnerVec.size()<1)
+                return;
 
+            int low=0;
+            for(; low<int(incNEnerVec.size()-1); low++)
+            {
+                if(incNEnerVec[low]>incNEner)
+                {
+                    break;
+                }
+            }
+            if(low>0)
+                low--;
+
+            int i, j;
+            double angVec[2]={-1,1};
+            i=0; j=0;
+            while((i<2)&&(j<int(temp.size())))
+            {
+                if(angVec[i]<temp[j])
+                {
+                    temp.insert(temp.begin()+j, angVec[i]);
+                    i++; j++;
+                }
+                else if(angVec[i]>temp[j])
+                {
+                    j++;
+                }
+                else
+                {
+                    i++; j++;
+                }
+            }
+
+            for(;i<2;i++)
+            {
+                temp.push_back(angVec[i]);
+            }
         }
+
         double GetAngleProb(double incNEner, double angle)
         {
-            return 0.;
+            int low=0;
+            if(incNEnerVec.size()<1)
+                return 0.;
+            else if(incNEnerVec.size()==1)
+            {
+                if(incNEnerVec[0]!=incNEner)
+                {
+                    return 0.;
+                }
+            }
+            else if(incNEnerVec.size()==2)
+            {
+                if((incNEnerVec[0]>incNEner)||(incNEnerVec[1]<incNEner))
+                {
+                    return 0.;
+                }
+            }
+            else
+            {
+                if((incNEnerVec[0]>incNEner)||(incNEnerVec[incNEnerVec.size()-1]<incNEner))
+                {
+                    return 0.;
+                }
+                for(; low<int(incNEnerVec.size()-1); low++)
+                {
+                    if(incNEnerVec[low]>incNEner)
+                    {
+                        break;
+                    }
+                }
+                if(low>0)
+                    low--;
+            }
+
+            return 1.0;
         }
+
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
+
+        void SumAngularData(vector<AngularDist*> &angDistList, vector<CSDist*> &pCSDistList, int &numAngEner)
+        {
+            cout << "this function has not been implemented" << endl;
+        }
+
         void SetData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2, double &temp)
         {
-
+            cout << "Error This funtion has not been implemented yet" << endl;
         }
         string IdentifyYourSelf()
         {

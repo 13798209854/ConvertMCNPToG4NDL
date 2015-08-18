@@ -21,6 +21,7 @@ class AngEnDist3DTab : public AngularEnergyDist
         virtual ~AngEnDist3DTab();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
+        void ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner);
 
         int numRegs, numIncEner, startEnerDist;
         //numRegs number of interpolation regions

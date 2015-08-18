@@ -65,7 +65,7 @@ void AngEnDistKallbach::ExtractMCNPData(stringstream &stream, int &count)
 
     for(int i=0; i<numDistSample; i++)
     {
-        outAng[i] = -1+2*i/numDistSample;
+        outAng[i] = -1+double(2*i)/numDistSample;
     }
 
     stream >> numRegs; count++;
@@ -203,6 +203,7 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << intScheme1[i] << '\n';
     }
 
+    double sum;
     for(int i=0; i<numIncEner; i++)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
@@ -217,13 +218,128 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
             stream << std::setw(14) << std::right << numPEnerPoints[i];
             stream << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
+            sum = 0.;
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
                 stream << std::setw(14) << std::right << outEnerProb[i][k]*outAngProb[i][k][j];
-                if(k%3==0)
+                sum += outEnerProb[i][k]*outAngProb[i][k][j];
+                if((k%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
+            }
+            if(sum==0.)
+            {
+                cout << "Error with angular energy probability data" << endl;
             }
         }
     }
+}
+
+void AngEnDistKallbach::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)
+{
+    if(enDist[0])
+        delete enDist[0];
+    if(angDist[0])
+        delete angDist[0];
+
+    vector<double> *outAngConv = new vector<double> [numIncEner];
+    vector<double> *outAngProbConv = new vector<double> [numIncEner];
+    double sum;
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            int k=0, l=0;
+            while((k<numDistSample)&&(l<int(outAngConv[i].size())))
+            {
+                if(outAng[k]<outAngConv[i][l])
+                {
+                    outAngConv[i].insert(outAngConv[i].begin()+l, outAng[k]);
+                    k++; l++;
+                }
+                else if(outAng[k]>outAngConv[i][l])
+                {
+                    l++;
+                }
+                else
+                {
+                    k++; l++;
+                }
+            }
+
+            for(;k<numDistSample;k++)
+            {
+                outAngConv[i].push_back(outAng[k]);
+            }
+        }
+
+        sum=0.;
+        outAngProbConv[i].assign(outAngConv[i].size(), 0.);
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            int low=0;
+            for(int l=0; l<int(outAngConv[i].size()); l++)
+            {
+                for(; low<numDistSample-1; low++)
+                {
+                    if(outAng[low]>outAngConv[i][l])
+                    {
+                        break;
+                    }
+                }
+                if(low>0)
+                    low--;
+
+                if(numDistSample>1)
+                    outAngProbConv[i][l] += Interpolate(2, outAngConv[i][l], outAng[low], outAng[low+1], outAngProb[i][j][low], outAngProb[i][j][low+1])*outEnerProb[i][j];
+                else
+                    outAngProbConv[i][l] += outAngProb[i][j][low]*outEnerProb[i][j];
+                sum += outAngProbConv[i][l];
+            }
+        }
+        if(sum!=0.)
+        {
+            for(int l=0; l<int(outAngConv[i].size()); l++)
+            {
+                outAngProbConv[i][l] /= sum;
+            }
+        }
+        else
+        {
+            cout << "Angular probability is zero for all angles at this incoming neutron energy" << endl;
+            for(int l=0; l<int(outAngConv[i].size()); l++)
+            {
+                outAngProbConv[i][l] = 1.0/outAngConv[i].size();
+            }
+        }
+    }
+
+    numAngEner+=numIncEner;
+    angDist[0] = new AngDist2DTabular(numIncEner, incEner, intScheme2, outAngConv, outAngProbConv);
+
+
+    //convert outEner and outEnerProb into vector<double> *
+    vector<double> *outEnerConv = new vector<double> [numIncEner];
+    vector<double> *outEnerProbConv = new vector<double> [numIncEner];
+    double sumEn;
+    for(int i=0; i<numIncEner; i++)
+    {
+        sumEn=0.;
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            outEnerConv[i].push_back(outEner[i][j]);
+            outEnerProbConv[i].push_back(outEnerProb[i][j]);
+            sumEn+=outEnerProb[i][j];
+        }
+        if(sumEn==0.)
+        {
+            cout << "break here" << endl;
+        }
+    }
+    enDist[0] = new EnerDistConTab(numRegs, regEndPos, intScheme1, numIncEner, incEner, intScheme2, outEnerConv, outEnerProbConv);
+
+    delete [] outAngConv;
+    delete [] outAngProbConv;
+    delete [] outEnerConv;
+    delete [] outEnerProbConv;
 }

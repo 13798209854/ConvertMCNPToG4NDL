@@ -50,7 +50,7 @@ void CSDist1DTab::WriteG4NDLCSData(stringstream &stream )
 
     for(int i=0; i<CSVecSize; i++)
     {
-        if(i%3==0)
+        if((i%3==0)||(i==CSVecSize-1))
             stream << '\n';
         stream << std::setw(14) << std::right << enerVec[i+startEner-1]*1000000;
         stream << std::setw(14) << std::right << CSVec[i];
@@ -77,5 +77,38 @@ double CSDist1DTab::Interpolate(double x)
     if(i<0)
         i=0;
 
-    return max(0.,CSDist::Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i+startEner-1], CSVec[i+startEner]));
+    return max(0.,CSDist::Interpolate(2, x, enerVec[i+startEner-1], enerVec[i+startEner], CSVec[i], CSVec[i+1]));
+}
+
+double CSDist1DTab::GetAvgCS()
+{
+    if(!setAvgCS)
+    {
+        double csSum=0.;
+        for(int i=0; i<(CSVecSize-1); i++)
+        {
+            csSum+=abs((CSVec[i]+CSVec[i+1])*(enerVec[i+startEner]-enerVec[i+startEner-1])/2);
+        }
+        avgCS = csSum/(enerVec[startEner-1]-enerVec[startEner+CSVecSize-2]);
+        setAvgCS = true;
+    }
+
+    return avgCS;
+}
+
+double CSDist1DTab::GetAvgCS(double ener)
+{
+    int i;
+    for(i=0; i<CSVecSize-1; i++)
+    {
+        if(enerVec[i+startEner-1]>ener)
+        {
+            break;
+        }
+    }
+    i--;
+    if(i<0)
+        i=0;
+
+    return (CSVec[i]+CSVec[i+1])/2;
 }

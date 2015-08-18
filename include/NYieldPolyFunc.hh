@@ -26,15 +26,15 @@ class NYieldPolyFunc: public YieldDist
         void ConvertToLinDist(int *regEndPos, int &numIncEner, double *&incEner, double *&yield);
         void AddData(YieldDist* nYield, CSDist** nCSDist, int index, int numProc, int numProc2)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void AddData(int &numRegsSum, int &numIncEnerSum, int* &regEndPosSum, int* &intSchemeSum, double* &incEnerSum, double* &yieldSum, CSDist** nCSDist, int index, int numProc, int numProc2)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void SetYieldData(int &numRegsSum, int &numIncEnerSum, int* &regEndPosSum, int* &intSchemeSum, double* &incEnerSum, double* &yieldSum, CSDist** nCSDist, int index, int numProc, int numProc2)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         string IdentifyYourSelf()
         {

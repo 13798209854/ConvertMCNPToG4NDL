@@ -8,6 +8,8 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include "../include/EnerDistConTab.hh"
+#include "../include/AngDist2DTabular.hh"
 using namespace std;
 
 /*
@@ -24,6 +26,7 @@ class AngularEnergyDist
         virtual void ExtractMCNPData(stringstream &stream, int &count)=0;
         virtual void WriteG4NDLData(stringstream &stream)=0;
         void SetTemperature(double temp) {temperature=temp;}
+        virtual void ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)=0;
 
         double Interpolate(int aScheme, double x, double x1, double x2, double y1, double y2) const;
         double Histogram(double , double , double , double y1, double ) const;

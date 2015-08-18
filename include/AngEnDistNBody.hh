@@ -21,6 +21,10 @@ class AngEnDistNBody : public AngularEnergyDist
         virtual ~AngEnDistNBody();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
+        void ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)
+        {
+            cout << "Error tried to convert AngEnDistNBody to an energy distributin and an Angular distribution, this is not possible" << endl;
+        }
 
         int numBodies;
         double particleMassRatio;

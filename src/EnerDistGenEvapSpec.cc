@@ -97,18 +97,18 @@ void EnerDistGenEvapSpec::WriteG4NDLData(stringstream &stream)
 
     for(int i=0; i<numIncEner; i++)
     {
-        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << normOutEnerDist[i] << '\n';
+        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << normOutEnerDist[i]*1000000 << '\n';
     }
 
     stream << std::setw(14) << std::right << numNormOutEnerDistPoints << '\n';
     stream << std::setw(14) << std::right << 1 << '\n';
-    stream << std::setw(14) << std::right << numNormOutEnerDistPoints << 2 << '\n';
+    stream << std::setw(14) << std::right << numNormOutEnerDistPoints << std::setw(14) << std::right << 2 << '\n';
 
     //we assume that the outEnerMulti are randomly sample equaly but a different distribution could be used, try and find out
     for(int i=0; i<numNormOutEnerDistPoints; i++)
     {
-        stream << std::setw(14) << std::right << outEnerMulti[i] << std::setw(14) << std::right << 1/(numNormOutEnerDistPoints);
-        if(i%3==0)
+        stream << std::setw(14) << std::right << outEnerMulti[i] << std::setw(14) << std::right << 1.0/(numNormOutEnerDistPoints);
+        if((i%3==0)||(i==numNormOutEnerDistPoints-1))
             stream << '\n';
     }
 }

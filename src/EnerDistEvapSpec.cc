@@ -84,11 +84,17 @@ void EnerDistEvapSpec::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << regEndPos[i] << std::setw(14) << std::right << intScheme[i] << '\n';
     }
 
+    double sum=0.;
     for(int i=0; i<numIncEner; i++)
     {
-        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << tValues[i];
-        if(i%3==0)
+        stream << std::setw(14) << std::right << incEner[i]*1000000 << std::setw(14) << std::right << tValues[i]*1000000;
+        sum += tValues[i];
+        if((i%3==0)||(i==numIncEner-1))
             stream << '\n';
+    }
+    if(sum==0.)
+    {
+        cout << "Error with energy probability data" << endl;
     }
 
 }

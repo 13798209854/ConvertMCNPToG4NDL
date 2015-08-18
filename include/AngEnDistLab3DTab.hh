@@ -21,6 +21,7 @@ class AngEnDistLab3DTab : public AngularEnergyDist
         virtual ~AngEnDistLab3DTab();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
+        void ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner);
 
         int numRegs, numIncEner /*startEnerDist*/;
         int *regEndPos, *intScheme1, *intScheme2, *outAngDistPos, *numPAngPoints;

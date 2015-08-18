@@ -33,6 +33,8 @@ class CSDist
         virtual int GetCSSize()=0;*/
         virtual string IdentifyYourSelf()=0;
         virtual double Interpolate(double x)=0;
+        virtual double GetAvgCS()=0;
+        virtual double GetAvgCS(double ener)=0;
 
         double Interpolate(int aScheme, double x, double x1, double x2, double y1, double y2) const;
         double Histogram(double , double , double , double y1, double ) const;
@@ -42,6 +44,8 @@ class CSDist
         double LogarithmicLogarithmic(double x, double x1, double x2, double y1, double y2) const;
         double Random(double , double , double , double y1, double y2) const;
 
+        double avgCS;
+        bool setAvgCS;
     protected:
     private:
 };

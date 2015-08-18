@@ -5,6 +5,48 @@ EnerDistConTab::EnerDistConTab(/*int EnerDistStart*/)
     /*startEnerDist =  EnerDistStart;*/
 }
 
+EnerDistConTab::EnerDistConTab(int numRegsTemp, int *regEndPosTemp, int *intScheme1Temp, int numIncEnerTemp, double *incEnerTemp, int *intScheme2Temp, vector<double> *outSumEnTemp, vector<double> *outSumEnProbTemp)
+{
+    distPos = NULL;
+
+    numRegs = numRegsTemp;
+    regEndPos = new int[numRegsTemp];
+    intScheme1 = new int[numRegsTemp];
+    for(int i=0; i<numRegsTemp; i++)
+    {
+        regEndPos[i] = regEndPosTemp[i];
+        intScheme1[i] = intScheme1Temp[i];
+    }
+
+    numIncEner = numIncEnerTemp;
+    incEner = new double[numIncEner];
+    intScheme2  = new int[numIncEner];
+    numPEnerPoints  = new int[numIncEner];
+    numDiscreteEnerPoints  = new int[numIncEner];
+    outEner = new double* [numIncEner];
+    outProb = new double* [numIncEner];
+    outSumProb = new double* [numIncEner];
+    for(int i=0; i<numIncEnerTemp; i++)
+    {
+        incEner[i] = incEnerTemp[i];
+        intScheme2[i] = intScheme2Temp[i];
+        numPEnerPoints[i] = outSumEnTemp[i].size();
+        numDiscreteEnerPoints[i] = 0;
+        outEner[i] = new double [numPEnerPoints[i]];
+        outProb[i] = new double [numPEnerPoints[i]];
+        outSumProb[i] = new double [numPEnerPoints[i]];
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            outEner[i][j]=outSumEnTemp[i][j];
+            outProb[i][j]=outSumEnProbTemp[i][j];
+            if(j>0)
+                outSumProb[i][j] = outSumProb[i][j-1]+outProb[i][j];
+            else
+                outSumProb[i][j] = outProb[i][j];
+        }
+    }
+}
+
 EnerDistConTab::~EnerDistConTab()
 {
     if(regEndPos)
@@ -116,6 +158,8 @@ void EnerDistConTab::ExtractMCNPData(stringstream &stream, int &count)
             numDiscreteEnerPoints[i] = 0;
             intScheme2[i]=intTemp;
         }
+        if(intScheme2[i]>5)
+            intScheme2[i]=2;
 
         stream >> intTemp; count++;
         numPEnerPoints[i]=intTemp;
@@ -154,20 +198,55 @@ void EnerDistConTab::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << intScheme1[i] << '\n';
     }
 
+    double sum, enerRange;
     for(int i=0; i<numIncEner; i++)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
-        stream << std::setw(14) << std::right << numPEnerPoints[i];
-        // assume linear interpolation
-        stream << std::setw(14) << std::right << 1 << '\n';
-        stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
 
-        for(int j=0; j<numPEnerPoints[i]; j++)
+        if(numPEnerPoints[i]!=1)
         {
-            stream << std::setw(14) << std::right << outEner[i][j]*1000000;
-            stream << std::setw(14) << std::right << outProb[i][j];
-            if(j%3==0)
-                stream << '\n';
+            stream << std::setw(14) << std::right << numPEnerPoints[i];
+            // assume linear interpolation
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
+
+            sum=0.;
+            enerRange=0.;
+            for(int j=0; j<numPEnerPoints[i]; j++)
+            {
+                stream << std::setw(14) << std::right << outEner[i][j]*1000000;
+                if(j>0)
+                {
+                    enerRange += outEner[i][j]-outEner[i][j-1];
+                }
+                stream << std::setw(14) << std::right << outProb[i][j];
+                sum+=outProb[i][j];
+                if((j%3==0)||(j==numPEnerPoints[i]-1))
+                    stream << '\n';
+            }
+            if(sum == 0.)
+            {
+                cout << "break here" << '\n';
+            }
+            if(enerRange==0.)
+            {
+                cout << "break here" << '\n';
+            }
+        }
+        else
+        {
+            stream << std::setw(14) << std::right << 2;
+            // assume linear interpolation
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << 2 << std::setw(14) << std::right << intScheme2[i] << '\n';
+
+            for(int j=0; j<2; j++)
+            {
+                stream << std::setw(14) << std::right << (0.999+double(j)*0.002)*outEner[i][0]*1000000;
+                stream << std::setw(14) << std::right << 0.5;
+                if((j%3==0)||(j==1))
+                    stream << '\n';
+            }
         }
     }
 
@@ -183,24 +262,37 @@ double EnerDistConTab::GetAverageOutEnergy()
         if(incEner[i]>1.0e-06)
             break;
     }
-    if(i==0)
-        i++;
-
-    for(int j=0; j<numPEnerPoints[i-1]-1; j++)
-    {
-        probSum += (outProb[i-1][j+1]-outProb[i-1][j])/2;
-        avgEner1 += (outEner[i-1][j+1]-outEner[i-1][j])*(outProb[i-1][j+1]-outProb[i-1][j])/2;
-    }
-    avgEner1/=probSum;
-    probSum=0;
+    if(i>0)
+        i--;
 
     for(int j=0; j<numPEnerPoints[i]-1; j++)
     {
         probSum += (outProb[i][j+1]-outProb[i][j])/2;
-        avgEner2 += (outEner[i][j+1]-outEner[i][j])*(outProb[i][j+1]-outProb[i][j])/2;
+        avgEner1 += (outEner[i][j+1]-outEner[i][j])*(outProb[i][j+1]-outProb[i][j])/2;
     }
-    avgEner2/=probSum;
+    if(probSum==0)
+        return incEner[i]*1000000;
+    avgEner1/=probSum;
 
-    return ((1.0-incEner[i-1])*(avgEner2-avgEner1)/(incEner[i]-incEner[i-1])+avgEner1)*1000000;
+    if(numIncEner>1)
+    {
+        probSum=0;
 
+        for(int j=0; j<numPEnerPoints[i+1]-1; j++)
+        {
+            probSum += (outProb[i+1][j+1]-outProb[i+1][j])/2;
+            avgEner2 += (outEner[i+1][j+1]-outEner[i+1][j])*(outProb[i+1][j+1]-outProb[i+1][j])/2;
+        }
+        if(probSum==0)
+            return incEner[i]*1000000;
+        avgEner2/=probSum;
+
+        if((incEner[i+1]-incEner[i])==0)
+            return incEner[i]*1000000;
+        return ((1.0-incEner[i])*(avgEner2-avgEner1)/(incEner[i+1]-incEner[i])+avgEner1)*1000000;
+    }
+    else
+    {
+        return avgEner1*1000000;
+    }
 }

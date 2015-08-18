@@ -2,7 +2,7 @@
 
 CSDist::CSDist()
 {
-    //ctor
+    setAvgCS=false;
 }
 
 CSDist::~CSDist()

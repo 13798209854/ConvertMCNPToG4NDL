@@ -204,6 +204,7 @@ void AngEnDistLab3DTab::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << intScheme1[i] << '\n';
     }
 
+    double sum;
     for(int i=0; i<numIncEner; i++)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
@@ -219,13 +220,142 @@ void AngEnDistLab3DTab::WriteG4NDLData(stringstream &stream)
             stream << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << numPEnerPoints[i][j] << std::setw(14) << std::right << intScheme3[i][j] << '\n';
 
+            sum=0.;
             for(int k=0; k<numPEnerPoints[i][j]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][j][k]*1000000;
                 stream << std::setw(14) << std::right << outEnProb[i][j][k];
-                if(k%3==0)
+                sum += outEnProb[i][j][k];
+                if((k%3==0)||(k==numPEnerPoints[i][j]-1))
                     stream << '\n';
+            }
+            if(sum==0.)
+            {
+                cout << "Error with angular energy probability data" << endl;
             }
         }
     }
+}
+
+void AngEnDistLab3DTab::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)
+{
+    if(enDist[0])
+        delete enDist[0];
+    if(angDist[0])
+        delete angDist[0];
+
+    vector<double> *outAngConv = new vector<double> [numIncEner];
+    vector<double> *outAngProbConv = new vector<double> [numIncEner];
+    double angSum;
+    for(int i=0; i<numIncEner; i++)
+    {
+        angSum=0.;
+        for(int j=0; j<numPAngPoints[i]; j++)
+        {
+            outAngConv[i].push_back(outAng[i][j]);
+            outAngProbConv[i].push_back(0.);
+            for(int k=0; k<numPEnerPoints[i][j]; k++)
+            {
+                outAngProbConv[i][j]+=outEnProb[i][j][k];
+                angSum+=outEnProb[i][j][k];
+            }
+        }
+        if(angSum!=0.)
+        {
+            for(int j=0; j<int(outAngProbConv[i].size()); j++)
+            {
+                outAngProbConv[i][j]/=angSum;
+            }
+        }
+        else
+        {
+            cout << "Angular probability is zero for all angles at this incoming neutron energy" << endl;
+            for(int l=0; l<int(outAngProbConv[i].size()); l++)
+            {
+                outAngProbConv[i][l] = 1.0/outAngProbConv[i].size();
+            }
+        }
+    }
+
+    numAngEner+=numIncEner;
+    angDist[0] = new AngDist2DTabular(numIncEner, incEner, intScheme2, outAngConv, outAngProbConv);
+
+    vector<double>* outSumEn = new vector<double> [numIncEner];
+    vector<double>* outSumEnProb = new vector<double> [numIncEner];
+    double sum;
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPAngPoints[i]; j++)
+        {
+            int k=0, l=0;
+            while((k<numPEnerPoints[i][j])&&(l<int(outSumEn[i].size())))
+            {
+                if(outEner[i][j][k]<outSumEn[i][l])
+                {
+                    outSumEn[i].insert(outSumEn[i].begin()+l, outEner[i][j][k]);
+                    k++; l++;
+                }
+                else if(outEner[i][j][k]>outSumEn[i][l])
+                {
+                    l++;
+                }
+                else
+                {
+                    k++; l++;
+                }
+            }
+
+            for(;k<numPEnerPoints[i][j];k++)
+            {
+                outSumEn[i].push_back(outEner[i][j][k]);
+            }
+        }
+
+        sum=0.;
+        outSumEnProb[i].assign(outSumEn[i].size(), 0.);
+        for(int j=0; j<numPAngPoints[i]; j++)
+        {
+            int low=0;
+            for(int l=0; l<int(outSumEn[i].size()); l++)
+            {
+                for(; low<numPEnerPoints[i][j]-1; low++)
+                {
+                    if(outEner[i][j][low]>outSumEn[i][l])
+                    {
+                        break;
+                    }
+                }
+                if(low>0)
+                    low--;
+
+                if(numPEnerPoints[i][j]>1)
+                    outSumEnProb[i][l] += Interpolate(2, outSumEn[i][l], outEner[i][j][low], outEner[i][j][low+1], outEnProb[i][j][low], outEnProb[i][j][low+1]);
+                else
+                    outSumEnProb[i][l] += outEnProb[i][j][low];
+                sum += outSumEnProb[i][l];
+            }
+        }
+        if(sum!=0.)
+        {
+            for(int l=0; l<int(outSumEn[i].size()); l++)
+            {
+                outSumEnProb[i][l] /= sum;
+            }
+        }
+        else
+        {
+            cout << "out-going energy dist prob zero for all out going energies at this incoming neutron energy" << endl;
+            for(int l=0; l<int(outSumEn[i].size()); l++)
+            {
+                outSumEnProb[i][l] = 1.0/outSumEn[i].size();
+            }
+        }
+    }
+
+    enDist[0] = new EnerDistConTab(numRegs, regEndPos, intScheme1, numIncEner, incEner, intScheme2, outSumEn, outSumEnProb);
+
+    delete [] outAngConv;
+    delete [] outAngProbConv;
+    delete [] outSumEn;
+    delete [] outSumEnProb;
 }

@@ -17,6 +17,7 @@ class EnerDistConTab: public EnergyDist
 {
     public:
         EnerDistConTab(/*int EnerDistStart*/);
+        EnerDistConTab(int numRegsTemp, int *regEndPosTemp, int *intScheme1Temp, int numIncEnerTemp, double *incEnerTemp, int *intScheme2Temp, vector<double> *outSumEnTemp, vector<double> *outSumEnProbTemp);
         virtual ~EnerDistConTab();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);

@@ -22,21 +22,23 @@ class CSDist1DTabP: public CSDist
         void WriteG4NDLYieldData(stringstream &stream);
         string IdentifyYourSelf();
         double Interpolate(double x);
+        double GetAvgCS();
+        double GetAvgCS(double ener);
         void SetCSData(CSDist* nCSData)
         {
             nCSData->SetCSData(enerCSVec, csEnerStart, csVec, csSize);
         }
         void SetCSData(double* &enerCSVecSet, int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void AddData(CSDist *secDist)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void AddData(int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         int startEner, CSVecSize, csSize, mtNum, csEnerStart;
         double *CSVec, *csVec, *enerCSVec;

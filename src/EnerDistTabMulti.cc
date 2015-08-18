@@ -94,7 +94,7 @@ void EnerDistTabMulti::WriteG4NDLData(stringstream &stream)
 //coresponding out-going energy falls with the range of the linear function.
 //then normalize the created out-going energy probability distribution
 
-    double *outEner, low, high, emax=-1, emin=-1, tempLow, tempHigh;
+    double *outEner, *outProbDist, *outEnerLow, *outEnerHigh, low, high, emax=-1, emin=-1, tempLow, tempHigh, sum=0., enerRange;
 
     //we ignore the given interpolation scheme since MCNP ignores it and uses a histogram scheme instead
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << 1 << '\n';
@@ -110,6 +110,9 @@ void EnerDistTabMulti::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << 2*numOutEnerPerIn << std::setw(14) << std::right << 2 << '\n';
 
         outEner=new double [2*numOutEnerPerIn];
+        outProbDist=new double [2*numOutEnerPerIn];
+        outEnerLow=new double [2*numOutEnerPerIn];
+        outEnerHigh=new double [2*numOutEnerPerIn];
 
         if(i==numIncEner-1)
         {
@@ -130,25 +133,89 @@ void EnerDistTabMulti::WriteG4NDLData(stringstream &stream)
             {
                 emin=tempLow;
             }
+            if((emin>tempHigh))
+            {
+                emin=tempHigh;
+            }
             if(emax<tempHigh)
             {
                 emax=tempHigh;
+            }
+            if(emax<tempLow)
+            {
+                emax=tempLow;
             }
         }
 
         for(int j=0; j<2*numOutEnerPerIn; j++)
         {
             outEner[j]=(emax-emin)*j/(2*numOutEnerPerIn)+(emax-emin)/(4*numOutEnerPerIn)+emin;
+            outEnerLow[j]=(emax-emin)*j/(2*numOutEnerPerIn)+emin;
+            outEnerHigh[j]=(emax-emin)*(j+1)/(2*numOutEnerPerIn)+emin;
+            outProbDist[j]=0;
         }
 
+        for(int j=0; j<numOutEnerPerIn; j++)
+        {
+            tempLow=tValues[i][j]*(low);
+            tempHigh=tValues[i][j]*(high);
+            for(int k=0; k<2*numOutEnerPerIn; k++)
+            {
+                if((outEnerLow[k]<tempLow)&&(outEnerHigh[k]>tempLow))
+                {
+                    outProbDist[k]+=1.0/(2*numOutEnerPerIn);
+                    sum+=1.0/(2*numOutEnerPerIn);
+                }
+                if((outEnerLow[k]<tempHigh)&&(outEnerHigh[k]>tempHigh))
+                {
+                    outProbDist[k]+=1.0/(2*numOutEnerPerIn);
+                    sum+=1.0/(2*numOutEnerPerIn);
+                }
+                if((tempLow<outEnerLow[k])&&(tempHigh>outEnerLow[k]))
+                {
+                    outProbDist[k]+=1.0/(2*numOutEnerPerIn);
+                    sum+=1.0/(2*numOutEnerPerIn);
+                }
+                if((tempLow<outEnerHigh[k])&&(tempHigh>outEnerHigh[k]))
+                {
+                    outProbDist[k]+=1.0/(2*numOutEnerPerIn);
+                    sum+=1.0/(2*numOutEnerPerIn);
+                }
+            }
+        }
+
+        for(int k=0; k<2*numOutEnerPerIn; k++)
+        {
+            outProbDist[k]/=sum;
+        }
+        sum=0.;
+        enerRange=0.;
         for(int j=0; j<2*numOutEnerPerIn; j++)
         {
             stream << std::setw(14) << std::right << outEner[j]*1000000;
-            stream << std::setw(14) << std::right << 1/(2*numOutEnerPerIn);
-            if(j%3==0)
+            if(j>0)
+            {
+                enerRange += outEner[j]-outEner[j-1];
+            }
+            stream << std::setw(14) << std::right << outProbDist[j];
+            sum += outProbDist[j];
+            if((j%3==0)||(j==2*numOutEnerPerIn-1))
                 stream << '\n';
         }
+        if(sum==0.)
+        {
+            cout << "Error with energy probability data" << endl;
+        }
+        if(enerRange==0.)
+        {
+            cout << "Error with energy probability data" << endl;
+        }
+        sum=0.;
+
         delete[] outEner;
+        delete[] outProbDist;
+        delete[] outEnerLow;
+        delete[] outEnerHigh;
     }
 
 }

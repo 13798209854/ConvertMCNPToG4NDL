@@ -101,9 +101,9 @@ void NYield1DTab::WriteG4NDLData(stringstream &stream)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
         stream << std::setw(14) << std::right << yield[i];
+        if((i%3==0)||(i==numIncEner-1))
+            stream << '\n';
     }
-    stream << '\n';
-
 }
 
 void NYield1DTab::SubtractPrompt(YieldDist* &promptYieldDist)

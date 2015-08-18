@@ -137,7 +137,7 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream &stream)
 //coresponding out-going energy falls with the range of the linear function.
 //then normalize the created out-going energy probability distribution
 
-    double *outEner, *outProbDist, *outEnerLow, *outEnerHigh, low, high, emax=-1, emin=-1, tempLow, tempHigh, sum=0.;
+    double *outEner, *outProbDist, *outEnerLow, *outEnerHigh, low, high, emax=-1, emin=-1, tempLow, tempHigh, sum=0., enerRange;
 
     //we ignore the given interpolation scheme since MCNP ignores it and uses a histogram scheme instead
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << 1 << '\n';
@@ -176,9 +176,17 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream &stream)
             {
                 emin=tempLow;
             }
+            if((emin>tempHigh))
+            {
+                emin=tempHigh;
+            }
             if(emax<tempHigh)
             {
                 emax=tempHigh;
+            }
+            if(emax<tempLow)
+            {
+                emax=tempLow;
             }
         }
 
@@ -224,14 +232,30 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream &stream)
             outProbDist[k]/=sum;
         }
         sum=0.;
+        enerRange=0.;
 
         for(int j=0; j<2*numPEnerPoints[i]; j++)
         {
             stream << std::setw(14) << std::right << outEner[j]*1000000;
+            if(j>0)
+            {
+                enerRange += outEner[j]-outEner[j-1];
+            }
             stream << std::setw(14) << std::right << outProbDist[j];
-            if(j%3==0)
+            sum += outProbDist[j];
+            if((j%3==0)||(j==2*numPEnerPoints[i]-1))
                 stream << '\n';
         }
+        if(sum==0.)
+        {
+            cout << "Error with the energy probability data" << endl;
+        }
+        if(enerRange==0.)
+        {
+            cout << "break here" << '\n';
+        }
+        sum=0.;
+
         delete[] outEner;
         delete[] outProbDist;
         delete[] outEnerLow;

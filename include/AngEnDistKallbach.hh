@@ -3,7 +3,7 @@
 
 #include "AngularEnergyDist.hh"
 
-#define numDistSample 200
+#define numDistSample 10
 
 /*
 Created By: Wesley Ford June 17, 2015
@@ -22,6 +22,7 @@ class AngEnDistKallbach : public AngularEnergyDist
         virtual ~AngEnDistKallbach();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
+        void ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner);
 
         int numRegs, numIncEner /*startEnerDist*/;
         //numRegs number of interpolation regions

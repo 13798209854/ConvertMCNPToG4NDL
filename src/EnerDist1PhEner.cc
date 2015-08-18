@@ -38,5 +38,6 @@ void EnerDist1PhEner::WriteG4NDLData(stringstream &stream)
 
     stream << std::setw(14) << std::right << photonEn*1000000;
     stream << std::setw(14) << std::right << 0.5 << '\n';
+    stream << '\n';
 
 }

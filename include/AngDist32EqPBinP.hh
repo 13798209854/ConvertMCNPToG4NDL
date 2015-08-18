@@ -1,23 +1,23 @@
-#ifndef AngDist32EqualPBin_HH
-#define AngDist32EqualPBin_HH
+#ifndef AngDist32EqPBinP_Hh
+#define AngDist32EqPBinP_Hh
 
 #include "AngularDist.hh"
 
 /*
 Created By: Wesley Ford June 17, 2015
 
-This class is responsible for the extraction of the energy independant 32 equal probability bin out-going angular distribution data from MCNP
+This class is responsible for the extraction of the energy independant 32 equall probability bin out-going photon angular distribution data from MCNP
 and the writing of this data into the applicable G4NDL files.
 
 To better understand the MCNP format that this class is built to extract from please refer to MCNP5 Manual Vol III
 To better understand the G4NDL format that this class is built to write to, please refer to G4NDL Final State Decryption
 */
 
-class AngDist32EqualPBin: public AngularDist
+class AngDist32EqPBinP: public AngularDist
 {
     public:
-        AngDist32EqualPBin();
-        virtual ~AngDist32EqualPBin();
+        AngDist32EqPBinP(/*int startAngularPDist*/);
+        virtual ~AngDist32EqPBinP();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
         bool CheckData()
@@ -30,10 +30,6 @@ class AngDist32EqualPBin: public AngularDist
             {
                 return false;
             }
-        }
-        string IdentifyYourSelf()
-        {
-            return "AngDist32EqualPBin";
         }
         void SetPoint(stringstream &stream, int &count, double incNEner)
         {
@@ -51,7 +47,6 @@ class AngDist32EqualPBin: public AngularDist
                 angVec.back()[k]=temp;
             }
         }
-
         void AddAngleVec(vector<double> &temp, double incNEner)
         {
             if(incNEnerVec.size()<1)
@@ -168,39 +163,30 @@ class AngDist32EqualPBin: public AngularDist
             }
             return AngularDist::Interpolate(2, incNEner, incNEnerVec[low], incNEnerVec[low+1], prob[0], prob[1]);
         }
-
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
         {
             cout << "this function has not been implemented" << endl;
         }
-
         void SumAngularData(vector<AngularDist*> &angDistList, vector<CSDist*> &pCSDistList, int &numAngEner)
         {
             cout << "this function has not been implemented" << endl;
         }
-
         void SetData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2, double &temp)
         {
-            temp=temperature;
-            enerVec=incNEnerVec;
-            numAngProb2.assign(incNEnerVec.size(),32);
-            intSchemeAng2.assign(incNEnerVec.size(),1);
-            angVec2.assign(incNEnerVec.size(), new double [32]);
-            angProbVec2.assign(incNEnerVec.size(), new double [32]);
-
-            for(int i=0; i<int(incNEnerVec.size()); i++)
-            {
-                for(int j=0; j<32; j++)
-                {
-                    angVec2[i][j]=angVec[i][j];
-                    angProbVec2[i][j]=1.0/(32*(angVec[i][j+1]-angVec[i][j]));
-                }
-            }
+            cout << "Error This funtion has not been implemented yet" << endl;
+        }
+        string IdentifyYourSelf()
+        {
+            return "AngDist32EqPBinP";
         }
 
-    vector<double*> angVec;
+        /*int startAngPDist;
+        int numIncEner;
+        double *incEner;
+        int *probDistPos;*/
+        vector<double*> angVec;
     protected:
     private:
 };
 
-#endif // AngDist32EqualPBin_HH
+#endif // AngDist32EqPBinP_Hh

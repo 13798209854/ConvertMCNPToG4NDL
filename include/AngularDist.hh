@@ -25,7 +25,7 @@ class AngularDist
         virtual void ExtractMCNPData(stringstream &stream, int &count)=0;
         virtual void WriteG4NDLData(stringstream &stream)=0;
         virtual void SetPoint(stringstream &stream, int &count, double incNEner)=0;
-        void AddEnergyVec(vector<double> &incNEnerVecSum)
+        virtual void AddEnergyVec(vector<double> &incNEnerVecSum)
         {
             int i=0, j=0;
             while((i<int(incNEnerVec.size()))&&(j<int(incNEnerVecSum.size())))
@@ -51,8 +51,10 @@ class AngularDist
             }
         }
         virtual void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)=0;
+        virtual void SumAngularData(vector<AngularDist*> &angDistList, vector<CSDist*> &pCSDistList, int &numAngEner)=0;
         virtual void AddAngleVec(vector<double> &temp, double incNEner)=0;
         virtual double GetAngleProb(double incNEner, double angle)=0;
+        virtual bool CheckData()=0;
         /*
         virtual void AddData(AngularDist *secDist)=0;
         virtual void AddData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2)=0;

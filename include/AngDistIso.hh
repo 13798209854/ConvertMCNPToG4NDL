@@ -20,6 +20,10 @@ class AngDistIso: public AngularDist
         virtual ~AngDistIso();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
+        bool CheckData()
+        {
+            return true;
+        }
         string IdentifyYourSelf()
         {
             return "AngDistIso";
@@ -28,67 +32,41 @@ class AngDistIso: public AngularDist
         {
             incNEnerVec.push_back(incNEner);
         }
-        /*
-        void AddData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2)
+        void AddEnergyVec(vector<double> &incNEnerVecSum)
         {
-            for(int i=0; i<int(incNEnerVec.size()); i++)
+            if(incNEnerVec.size()==0)
             {
-                for(int j=0; j<int(enerVec.size()); j++)
+                incNEnerVec.push_back(0.);
+                incNEnerVec.push_back(20);
+            }
+            int i=0, j=0;
+            while((i<int(incNEnerVec.size()))&&(j<int(incNEnerVecSum.size())))
+            {
+                if(incNEnerVec[i]<incNEnerVecSum[j])
                 {
-                    if(incNEnerVec[i]<enerVec[j])
-                    {
-                        enerVec.insert(enerVec.begin()+j, incNEnerVec[i]);
-                        numAngProb2.insert(numAngProb2.begin()+j, 2);
-                        intSchemeAng2.insert(intSchemeAng2.begin()+j, 1);
-                        angVec2.insert(angVec2.begin()+j, new double [2]);
-                        angProbVec2.insert(angProbVec2.begin()+j, new double [2]);
-                        angVec2[j][0]=-1;
-                        angProbVec2[j][0]=1;
-
-                        angVec2[j][1]=1;
-                        angProbVec2[j][1]=1;
-                        break;
-                    }
-                    else if(incNEnerVec[i]==enerVec[j])
-                    {
-                        double sum2=0.;
-                        for(int m=0; m<numAngProb2[j]; m++)
-                        {
-                            sum2 += angProbVec2[j][m];
-                        }
-
-                        for(int k=0; k<numAngProb2[j]; k++)
-                        {
-                            angProbVec2[j][k]/=sum2;
-                            angProbVec2[j][k]+=1;
-                        }
-                        break;
-                    }
-                    else if(j==int(enerVec.size()))
-                    {
-                        j++;
-                        enerVec.insert(enerVec.begin()+j, incNEnerVec[i]);
-                        numAngProb2.insert(numAngProb2.begin()+j, 2);
-                        intSchemeAng2.insert(intSchemeAng2.begin()+j, 1);
-                        angVec2.insert(angVec2.begin()+j, new double [2]);
-                        angProbVec2.insert(angProbVec2.begin()+j, new double [2]);
-                        angVec2[j][0]=-1;
-                        angProbVec2[j][0]=1;
-
-                        angVec2[j][1]=1;
-                        angProbVec2[j][1]=1;
-                        break;
-                    }
+                    incNEnerVecSum.insert(incNEnerVecSum.begin()+j, incNEnerVec[i]);
+                    i++; j++;
+                }
+                else if(incNEnerVec[i]>incNEnerVecSum[j])
+                {
+                    j++;
+                }
+                else
+                {
+                    i++; j++;
                 }
             }
-        }
-        void AddData(AngularDist *secDist)
-        {
 
+            for(;i<int(incNEnerVec.size());i++)
+            {
+                incNEnerVecSum.push_back(incNEnerVec[i]);
+            }
         }
-        */
         void AddAngleVec(vector<double> &temp, double incNEner)
         {
+            if(incNEnerVec.size()<1)
+                return;
+
             int low=0;
             for(; low<int(incNEnerVec.size()-1); low++)
             {
@@ -97,59 +75,82 @@ class AngDistIso: public AngularDist
                     break;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size()-1)))
-                return;
-            else
+            if(low>0)
                 low--;
 
-            int i, j, cond=low+2;
+            int i, j;
             double angVec[2]={-1,1};
-            for(; low<cond; low++)
+            i=0; j=0;
+            while((i<2)&&(j<int(temp.size())))
             {
-                i=0; j=0;
-                while((i<2)&&(j<int(temp.size())))
+                if(angVec[i]<temp[j])
                 {
-                    if(angVec[i]<temp[j])
-                    {
-                        temp.insert(temp.begin()+j, angVec[i]);
-                        i++; j++;
-                    }
-                    else if(angVec[i]>temp[j])
-                    {
-                        j++;
-                    }
-                    else
-                    {
-                        i++; j++;
-                    }
+                    temp.insert(temp.begin()+j, angVec[i]);
+                    i++; j++;
                 }
+                else if(angVec[i]>temp[j])
+                {
+                    j++;
+                }
+                else
+                {
+                    i++; j++;
+                }
+            }
 
-                for(;i<2;i++)
-                {
-                    temp.push_back(angVec[i]);
-                }
+            for(;i<2;i++)
+            {
+                temp.push_back(angVec[i]);
             }
         }
 
         double GetAngleProb(double incNEner, double angle)
         {
             int low=0;
-            for(; low<int(incNEnerVec.size()); low++)
+            if(incNEnerVec.size()<1)
+                return 0.;
+            else if(incNEnerVec.size()==1)
             {
-                if(incNEnerVec[low]>incNEner)
+                if(incNEnerVec[0]!=incNEner)
                 {
-                    break;
+                    return 0.;
                 }
             }
-            if((low==0)||(low==int(incNEnerVec.size())))
-                return 0.;
+            else if(incNEnerVec.size()==2)
+            {
+                if((incNEnerVec[0]>incNEner)||(incNEnerVec[1]<incNEner))
+                {
+                    return 0.;
+                }
+            }
+            else
+            {
+                if((incNEnerVec[0]>incNEner)||(incNEnerVec[incNEnerVec.size()-1]<incNEner))
+                {
+                    return 0.;
+                }
+                for(; low<int(incNEnerVec.size()-1); low++)
+                {
+                    if(incNEnerVec[low]>incNEner)
+                    {
+                        break;
+                    }
+                }
+                if(low>0)
+                    low--;
+            }
 
             return 1.0;
         }
 
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
         {
+            cout << "this function has not been implemented" << endl;
+        }
 
+        void SumAngularData(vector<AngularDist*> &angDistList, vector<CSDist*> &pCSDistList, int &numAngEner)
+        {
+            cout << "this function has not been implemented" << endl;
         }
 
         void SetData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2, double &temp)
@@ -163,11 +164,11 @@ class AngDistIso: public AngularDist
 
             for(int i=0; i<int(incNEnerVec.size()); i++)
             {
-                angVec2[i][0]=-1;
-                angProbVec2[i][0]=1;
+                angVec2[i][0]=-1.0;
+                angProbVec2[i][0]=1.0;
 
-                angVec2[i][1]=1;
-                angProbVec2[i][1]=1;
+                angVec2[i][1]=1.0;
+                angProbVec2[i][1]=1.0;
             }
         }
 

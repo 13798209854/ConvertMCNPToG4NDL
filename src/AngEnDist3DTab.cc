@@ -250,8 +250,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
     // has a new probability dist which is dependant on the out-going energy. We did this to bring the 3D table format
     // (order of properties) inline with that used by G4NDL DistLaw=7
     int *sumAngPoints = new int [numIncEner], *newNumAngPoints = new int [numIncEner];
-    double *angMax= new double [numIncEner], *angMin = new double [numIncEner];
-    double **outAngNew = new double* [numIncEner];
+    vector<double> *outAngNew = new vector<double> [numIncEner];
     double ***outEnProbNew = new double** [numIncEner];
 
     for(int i=0; i<numIncEner; i++)
@@ -260,27 +259,39 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
         for(int j=0; j<numPEnerPoints[i]; j++)
         {
             sumAngPoints[i]+=numPAngPoints[i][j];
-            angMax[i]=0;
-            angMin[i]=0;
-            for(int k=0; k<numPAngPoints[i][j]; k++)
+
+            int k=0, l=0;
+            while((k<numPAngPoints[i][j])&&(l<int(outAngNew[i].size())))
             {
-                if(outAng[i][j][k]>angMax[i])
-                    angMax[i]=outAng[i][j][k];
-                if((outAng[i][j][k]<angMin[i])||(angMin[i]==0))
-                    angMin[i]=outAng[i][j][k];
+                if(outAng[i][j][k]<outAngNew[i][l])
+                {
+                    outAngNew[i].insert(outAngNew[i].begin()+l, outAng[i][j][k]);
+                    k++; l++;
+                }
+                else if(outAng[i][j][k]>outAngNew[i][l])
+                {
+                    l++;
+                }
+                else
+                {
+                    k++; l++;
+                }
+            }
+
+            for(;k<numPAngPoints[i][j];k++)
+            {
+                outAngNew[i].push_back(outAng[i][j][k]);
             }
         }
     }
 
     for(int i=0; i<numIncEner; i++)
     {
-        newNumAngPoints[i] = floor(5*sumAngPoints[i]/numPEnerPoints[i]);
-        outAngNew[i] = new double [newNumAngPoints[i]];
+        newNumAngPoints[i] = outAngNew[i].size();
         outEnProbNew[i] = new double* [newNumAngPoints[i]];
 
         for(int j=0; j<newNumAngPoints[i]; j++)
         {
-            outAngNew[i][j] = (angMax[i]-angMin[i])*j/newNumAngPoints[i]+angMin[i]+(angMax[i]-angMin[i])*0.5/newNumAngPoints[i];
             outEnProbNew[i][j] = new double [numPEnerPoints[i]];
 
             for(int k=0; k<numPEnerPoints[i]; k++)
@@ -309,6 +320,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << intScheme1[i] << '\n';
     }
 
+    double sum;
     for(int i=0; i<numIncEner; i++)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
@@ -324,19 +336,24 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
             stream << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
 
+            sum = 0.;
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
                 stream << std::setw(14) << std::right << outEnProbNew[i][j][k];
-                if(k%3==0)
+                sum += outEnProbNew[i][j][k];
+                if((k%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
+            }
+            if(sum==0.)
+            {
+                cout << "Error with angular energy probability data" << endl;
             }
         }
     }
 
     for(int i=0; i<numIncEner; i++)
     {
-        delete [] outAngNew[i];
         for(int j=0; j<newNumAngPoints[i]; j++)
         {
             delete [] outEnProbNew[i][j];
@@ -346,8 +363,119 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
 
     delete [] outEnProbNew;
     delete [] outAngNew;
-    delete [] angMax;
-    delete [] angMin;
     delete [] sumAngPoints;
     delete [] newNumAngPoints;
+}
+
+void AngEnDist3DTab::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)
+{
+    if(enDist[0])
+        delete enDist[0];
+    if(angDist[0])
+        delete angDist[0];
+
+    vector<double> *outAngConv = new vector<double> [numIncEner];
+    vector<double> *outAngProbConv = new vector<double> [numIncEner];
+    double sum;
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            int k=0, l=0;
+            while((k<numPAngPoints[i][j])&&(l<int(outAngConv[i].size())))
+            {
+                if(outAng[i][j][k]<outAngConv[i][l])
+                {
+                    outAngConv[i].insert(outAngConv[i].begin()+l, outAng[i][j][k]);
+                    k++; l++;
+                }
+                else if(outAng[i][j][k]>outAngConv[i][l])
+                {
+                    l++;
+                }
+                else
+                {
+                    k++; l++;
+                }
+            }
+
+            for(;k<numPAngPoints[i][j];k++)
+            {
+                outAngConv[i].push_back(outAng[i][j][k]);
+            }
+        }
+
+        sum=0.;
+        outAngProbConv[i].assign(outAngConv[i].size(), 0.);
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            int low=0;
+            for(int l=0; l<int(outAngConv[i].size()); l++)
+            {
+                for(; low<numPAngPoints[i][j]-1; low++)
+                {
+                    if(outAng[i][j][low]>outAngConv[i][l])
+                    {
+                        break;
+                    }
+                }
+                if(low>0)
+                    low--;
+
+                if(numPAngPoints[i][j]>1)
+                    outAngProbConv[i][l] += Interpolate(2, outAngConv[i][l], outAng[i][j][low], outAng[i][j][low+1], outAngProb[i][j][low], outAngProb[i][j][low+1])*outEnerProb[i][j];
+                else
+                    outAngProbConv[i][l] += outAngProb[i][j][low]*outEnerProb[i][j];
+                sum += outAngProbConv[i][l];
+            }
+        }
+        if(sum!=0.)
+        {
+            for(int l=0; l<int(outAngConv[i].size()); l++)
+            {
+                outAngProbConv[i][l] /= sum;
+            }
+        }
+        else
+        {
+            cout << "Angular probability is zero for all angles at this incoming neutron energy" << endl;
+            for(int l=0; l<int(outAngConv[i].size()); l++)
+            {
+                outAngProbConv[i][l] = 1.0/outAngConv[i].size();
+            }
+        }
+    }
+
+    numAngEner+=numIncEner;
+    angDist[0] = new AngDist2DTabular(numIncEner, incEner, intScheme2, outAngConv, outAngProbConv);
+
+    if(!(angDist[0]->CheckData()))
+    {
+        cout << "Error in angular-energy data AngEnDist3DTab.cc:454" << endl;
+    }
+
+    //convert outEner and outEnerProb into vector<double> *
+    vector<double> *outEnerConv = new vector<double> [numIncEner];
+    vector<double> *outEnerProbConv = new vector<double> [numIncEner];
+    double sumEn;
+    for(int i=0; i<numIncEner; i++)
+    {
+        sumEn=0.;
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            outEnerConv[i].push_back(outEner[i][j]);
+            outEnerProbConv[i].push_back(outEnerProb[i][j]);
+            sumEn+=outEnerProb[i][j];
+        }
+        if(sumEn==0.)
+        {
+            cout << "break here" << endl;
+        }
+    }
+    enDist[0] = new EnerDistConTab(numRegs, regEndPos, intScheme1, numIncEner, incEner, intScheme2, outEnerConv, outEnerProbConv);
+
+    delete [] outAngConv;
+    delete [] outAngProbConv;
+    delete [] outEnerConv;
+    delete [] outEnerProbConv;
 }

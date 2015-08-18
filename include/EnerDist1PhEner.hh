@@ -24,13 +24,13 @@ class EnerDist1PhEner: public EnergyDist
         {
             if(photonType!=2)
             {
-                return photonEn;
+                return photonEn*1000000;
             }
             else
             {
                 // assume average incoming neutron energy is 1eV
                 //cout << "### Use of large energy distribution approximation" << endl;
-                return (photonEn+1.0e-06*awr/(awr+1));
+                return (photonEn+1.0e-06*awr/(awr+1))*1000000;
             }
         }
         string IdentifyYourSelf()

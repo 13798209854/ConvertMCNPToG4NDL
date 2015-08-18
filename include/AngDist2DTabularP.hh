@@ -1,5 +1,5 @@
-#ifndef AngDist2DTabular_HH
-#define AngDist2DTabular_HH
+#ifndef AngDist2DTabularP_HH
+#define AngDist2DTabularP_HH
 
 #include "AngularDist.hh"
 
@@ -13,13 +13,12 @@ To better understand the MCNP format that this class is built to extract from pl
 To better understand the G4NDL format that this class is built to write to, please refer to G4NDL Final State Decryption
 */
 
-class AngDist2DTabular: public AngularDist
+class AngDist2DTabularP: public AngularDist
 {
     public:
-        AngDist2DTabular();
-        AngDist2DTabular(int numIncEnerTemp, double *incEnerTemp, int *intSchemeTemp, vector<double> *outAngTemp, vector<double> *outAngProbTemp);
-        AngDist2DTabular(AngularDist* angDist);
-        virtual ~AngDist2DTabular();
+        AngDist2DTabularP();
+        AngDist2DTabularP(AngularDist* angDist);
+        virtual ~AngDist2DTabularP();
         void ExtractMCNPData(stringstream &stream, int &count);
         void WriteG4NDLData(stringstream &stream);
         bool CheckData()
@@ -42,23 +41,19 @@ class AngDist2DTabular: public AngularDist
                     {
                         return false;
                     }
-                    if(sum!=sum)
-                    {
-                        return false;
-                    }
                 }
             }
             return true;
         }
         string IdentifyYourSelf()
         {
-            return "AngDist2DTabular";
+            return "AngDist2DTabularP";
         }
         void SetPoint(stringstream &stream, int &count, double incNEner)
         {
             //the angular distribution is represented as a table of cosine and prob
             int intTemp;
-            double temp;
+            double temp, sum;
 
             incNEnerVec.push_back(incNEner);
             stream >> intTemp;
@@ -77,16 +72,16 @@ class AngDist2DTabular: public AngularDist
                 stream >> temp;
                 angVec.back()[k]=temp;
             }
-            double sum=0.;
+            sum=0.;
             for(int k=0; k<numAngProb.back(); k++, count++)
             {
                 stream >> temp;
                 angProbVec.back()[k]=temp;
-                sum+=angProbVec.back()[k];
+                sum+=temp;
             }
             if(sum==0.)
             {
-                cout << "Error in the collection of the angular data : AngDist2DTabular.hh:61" << endl;
+                cout << "Error in the collection of the angular data AngDist2DTabularP.hh:60" << endl;
             }
             for(int k=0; k<numAngProb.back(); k++, count++)
             {
@@ -214,6 +209,10 @@ class AngDist2DTabular: public AngularDist
         }
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
         {
+            cout << "this function has not been implemented" << endl;
+        }
+        void SumAngularData(vector<AngularDist*> &angDistList, vector<CSDist*> &pCSDistList, int &numAngEner)
+        {
             double sumCS, curCS, sumCheck;
 
             intSchemeAng.clear(); numAngProb.clear(); incNEnerVec.clear();
@@ -231,34 +230,28 @@ class AngDist2DTabular: public AngularDist
             }
 
             vector<double> temp;
-            for(int i=startList; i<endList; i++)
+            for(int i=0; i<int(angDistList.size()); i++)
             {
-                for(int j=0; j<int(angDistList[i].size()); j++)
+                if(!(angDistList[i]->CheckData()))
                 {
-                    if(!(angDistList[i][j]->CheckData()))
-                    {
-                        cout << "Error in angular data AngDist2DTabular.hh:234" << endl;
-                    }
-                    angDistList[i][j]->AddEnergyVec(incNEnerVec);
+                    cout << "Error in angular data AngDist2DTabularP.hh:235" << endl;
                 }
+                angDistList[i]->AddEnergyVec(incNEnerVec);
             }
-            numAngEner+=incNEnerVec.size();
+            numAngEner=incNEnerVec.size();
 
             //we set the interpolation to always be linear
-            intSchemeAng.assign(incNEnerVec.size(),2);
+            intSchemeAng.assign(numAngEner,2);
 
             for(int m=0; m<int(incNEnerVec.size()); m++)
             {
                 sumCS=0.;
-                for(int i=startList; i<endList; i++)
+                for(int i=0; i<int(angDistList.size()); i++)
                 {
-                    if(nCSDistList[i])
+                    if(pCSDistList[i])
                     {
-                        sumCS+=max(0.,nCSDistList[i]->GetAvgCS());
-                        for(int j=0; j<int(angDistList[i].size()); j++)
-                        {
-                            angDistList[i][j]->AddAngleVec(temp, incNEnerVec[m]);
-                        }
+                        sumCS+=max(0.,pCSDistList[i]->GetAvgCS());
+                        angDistList[i]->AddAngleVec(temp, incNEnerVec[m]);
                     }
                 }
                 numAngProb.push_back(temp.size());
@@ -275,15 +268,12 @@ class AngDist2DTabular: public AngularDist
                     sumCheck=0.;
                     for(int k=0; k<numAngProb.back(); k++)
                     {
-                        for(int i=startList; i<endList; i++)
+                        for(int i=0; i<int(angDistList.size()); i++)
                         {
-                            if(nCSDistList[i])
+                            if(pCSDistList[i])
                             {
-                                curCS = max(0.,nCSDistList[i]->GetAvgCS());
-                                for(int j=0; j<int(angDistList[i].size()); j++)
-                                {
-                                    angProbVec.back()[k]+=curCS*angDistList[i][j]->GetAngleProb(incNEnerVec[m], angVec.back()[k])/sumCS;
-                                }
+                                curCS = max(0.,pCSDistList[i]->GetAvgCS());
+                                angProbVec.back()[k]+=curCS*angDistList[i]->GetAngleProb(incNEnerVec[m], angVec.back()[k])/sumCS;
                             }
                         }
                     }
@@ -293,7 +283,7 @@ class AngDist2DTabular: public AngularDist
                     }
                     if(sumCheck==0.)
                     {
-                        cout << "Error in the summation of the angular probability data : AngDist2DTabular.hh:259" << endl;
+                        cout << "Error in the summation of the angular probability data AngDist2DTabularP.hh:253" << endl;
                     }
                 }
                 else
@@ -305,13 +295,9 @@ class AngDist2DTabular: public AngularDist
                 }
             }
         }
-        void SumAngularData(vector<AngularDist*> &angDistList, vector<CSDist*> &pCSDistList, int &numAngEner)
-        {
-            cout << "this function has not been implemented" << endl;
-        }
         void SetData(vector<double> &enerVec, vector <double*> &angVec2, vector <double*> &angProbVec2, vector<int> &intSchemeAng2, vector<int> &numAngProb2, double &temp)
         {
-            cout << "this function has not been implemented" << endl;
+            cout << "Error This funtion has not been implemented yet" << endl;
         }
         vector <double*> angVec, angProbVec;
         vector<int> intSchemeAng, numAngProb;
@@ -320,4 +306,4 @@ class AngDist2DTabular: public AngularDist
     private:
 };
 
-#endif // AngDist2DTabular_HH
+#endif // AngDist2DTabularP_HH

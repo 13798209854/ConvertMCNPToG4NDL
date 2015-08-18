@@ -36,13 +36,15 @@ class CSDist1DTab: public CSDist
         void WriteG4NDLCSData(stringstream &stream);
         void WriteG4NDLYieldData(stringstream &stream)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void SetCSData(CSDist* nCSData)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         double Interpolate(double x);
+        double GetAvgCS();
+        double GetAvgCS(double ener);
         void SetCSData(double* &enerCSVecSet, int &csEnerStartSet, double* &csVecSet, int &csSizeSet)
         {
             enerCSVecSet=enerVec;
@@ -109,7 +111,7 @@ class CSDist1DTab: public CSDist
             return CSVecSize;
         }*/
 
-        int startEner, CSVecSize;
+        int startEner=0, CSVecSize=0;
         double *CSVec, *enerVec;
         bool elastic=false;
     protected:

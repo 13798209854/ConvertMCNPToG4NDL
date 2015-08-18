@@ -34,19 +34,15 @@ class NYield1DTab: public YieldDist
             double sumCS=0.;
             for(int j=numProc2; j<numProc; j++)
             {
-                sumCS+=max(0.,nCSDist[j]->Interpolate(ener1));
+                if(nCSDist[j])
+                    sumCS+=max(0.,nCSDist[j]->GetAvgCS());
             }
-            yield[0]=TYR*nCSDist[index]->Interpolate(ener1)/sumCS;
-            sumCS=0.;
-            for(int j=numProc2; j<numProc; j++)
-            {
-                sumCS+=max(0.,nCSDist[j]->Interpolate(ener2));
-            }
-            yield[1]=TYR*nCSDist[index]->Interpolate(ener2)/sumCS;
+            yield[0]=abs(TYR)*nCSDist[index]->GetAvgCS()/sumCS;
+            yield[1]=yield[0];
         }
         NYield1DTab(YieldDist* nYield, CSDist** nCSDist, int index, int numProc, int numProc2)
         {
-            SetYieldData(numRegs, numIncEner, regEndPos, intScheme, incEner, yield, nCSDist, index, numProc, numProc2);
+            nYield->SetYieldData(numRegs, numIncEner, regEndPos, intScheme, incEner, yield, nCSDist, index, numProc, numProc2);
         }
 
         virtual ~NYield1DTab();
@@ -56,11 +52,11 @@ class NYield1DTab: public YieldDist
         void SubtractPrompt(int totalNumIncEner, double *totalIncEner, double *totalYield);
         void SubtractPrompt(double *&totalCoeff, int &totalNumCoeff)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void ConvertToLinDist(int *regEndPos, int &numIncEner, double *&incEner, double *&yield)
         {
-
+            cout << "this function has not been implemented" << endl;
         }
         void AddData(YieldDist* nYield, CSDist** nCSDist, int index, int numProc, int numProc2)
         {
@@ -90,20 +86,22 @@ class NYield1DTab: public YieldDist
                     sumCS=0.;
                     for(int j=numProc2; j<numProc; j++)
                     {
-                        sumCS+=max(0.,nCSDist[j]->Interpolate(incEner[i]));
+                        if(nCSDist[j])
+                            sumCS+=max(0.,nCSDist[j]->GetAvgCS(incEner[i]));
                     }
                     aboveEn.push_back(incEner[i]);
-                    aboveY.push_back(nCSDist[index]->Interpolate(incEner[i])*yield[i]/sumCS+max(0.,Interpolate( intScheme[numRegsSum-1], incEner[i], incEnerSum[numIncEnerSum-2], incEnerSum[numIncEnerSum-1], yieldSum[numIncEnerSum-2], yieldSum[numIncEnerSum-1])));
+                    aboveY.push_back(nCSDist[index]->GetAvgCS(incEner[i])*yield[i]/sumCS+max(0.,Interpolate( intScheme[numRegsSum-1], incEner[i], incEnerSum[numIncEnerSum-2], incEnerSum[numIncEnerSum-1], yieldSum[numIncEnerSum-2], yieldSum[numIncEnerSum-1])));
                 }
                 else if(incEner[i]<incEnerSum[0])
                 {
                     sumCS=0.;
                     for(int j=numProc2; j<numProc; j++)
                     {
-                        sumCS+=max(0.,nCSDist[j]->Interpolate(incEner[i]));
+                        if(nCSDist[j])
+                            sumCS+=max(0.,nCSDist[j]->GetAvgCS(incEner[i]));
                     }
                     belowEn.push_back(incEner[i]);
-                    belowY.push_back(nCSDist[index]->Interpolate(incEner[i])*yield[i]/sumCS+max(0.,Interpolate( intScheme[0], incEner[i], incEnerSum[0], incEnerSum[1], yieldSum[0], yieldSum[1])));
+                    belowY.push_back(nCSDist[index]->GetAvgCS(incEner[i])*yield[i]/sumCS+max(0.,Interpolate( intScheme[0], incEner[i], incEnerSum[0], incEnerSum[1], yieldSum[0], yieldSum[1])));
                 }
                 else
                 {
@@ -121,10 +119,11 @@ class NYield1DTab: public YieldDist
                             sumCS=0.;
                             for(int j=numProc2; j<numProc; j++)
                             {
-                                sumCS+=max(0.,nCSDist[j]->Interpolate(incEner[i]));
+                                if(nCSDist[j])
+                                    sumCS+=max(0.,nCSDist[j]->GetAvgCS(incEner[i]));
                             }
                             cenEn.push_back(incEner[i]);
-                            cenY.push_back(nCSDist[index]->Interpolate(incEner[i])*yield[i]/sumCS+max(0.,Interpolate( intScheme[reg], incEner[i], incEnerSum[j-1], incEnerSum[j], yieldSum[j-1], yieldSum[j])));
+                            cenY.push_back(nCSDist[index]->GetAvgCS(incEner[i])*yield[i]/sumCS+max(0.,Interpolate( intScheme[reg], incEner[i], incEnerSum[j-1], incEnerSum[j], yieldSum[j-1], yieldSum[j])));
                             regVec.push_back(reg1);
                         }
                     }
@@ -150,10 +149,11 @@ class NYield1DTab: public YieldDist
                 sumCS=0.;
                 for(int j=numProc2; j<numProc; j++)
                 {
-                    sumCS+=max(0.,nCSDist[j]->Interpolate(incEnerSum[i]));
+                    if(nCSDist[j])
+                        sumCS+=max(0.,nCSDist[j]->GetAvgCS(incEnerSum[i]));
                 }
 
-                yieldSum[i]+=max(0.,nCSDist[index]->Interpolate(incEnerSum[i])*Interpolate( intScheme[reg], incEnerSum[i], incEner[low], incEner[low+1], yield[low], yield[low+1])/sumCS);
+                yieldSum[i]+=max(0.,nCSDist[index]->GetAvgCS(incEnerSum[i])*Interpolate( intScheme[reg], incEnerSum[i], incEner[low], incEner[low+1], yield[low], yield[low+1])/sumCS);
             }
 
             numIncEnerSum+=belowEn.size()+aboveEn.size()+cenEn.size();
@@ -220,10 +220,11 @@ class NYield1DTab: public YieldDist
                 sumCS=0.;
                 for(int j=numProc2; j<numProc; j++)
                 {
-                    sumCS+=max(0.,nCSDist[j]->Interpolate(incEner[i]));
+                    if(nCSDist[j])
+                        sumCS+=max(0.,nCSDist[j]->GetAvgCS(incEner[i]));
                 }
                 incEnerSum[i]=incEner[i];
-                yieldSum[i]=max(0.,nCSDist[index]->Interpolate(incEner[i])*yield[i]/sumCS);
+                yieldSum[i]=max(0.,nCSDist[index]->GetAvgCS(incEner[i])*yield[i]/sumCS);
             }
         }
 
