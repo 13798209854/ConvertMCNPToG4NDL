@@ -40,7 +40,7 @@ void AngDist2DTabularP::WriteG4NDLData(stringstream &stream)
         {
             stream << std::setw(14) << std::right << angVec[i][j] << std::setw(14) << std::right << angProbVec[i][j];
             sum += angProbVec[i][j];
-            if((j%3==0)||(j==numAngProb[i]-1))
+            if(((j+1)%3==0)||(j==numAngProb[i]-1))
                 stream << '\n';
         }
         if(sum==0.)

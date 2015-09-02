@@ -244,7 +244,7 @@ void EnerDistConTab::WriteG4NDLData(stringstream &stream)
             {
                 stream << std::setw(14) << std::right << (0.999+double(j)*0.002)*outEner[i][0]*1000000;
                 stream << std::setw(14) << std::right << 0.5;
-                if((j%3==0)||(j==1))
+                if(((j+1)%3==0)||(j==1))
                     stream << '\n';
             }
         }

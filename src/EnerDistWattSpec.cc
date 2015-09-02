@@ -154,7 +154,7 @@ void EnerDistWattSpec::WriteG4NDLData(stringstream &stream)
     for(int i=0; i<numIncEnerB; i++)
     {
         stream << std::setw(14) << std::right << incEnerB[i]*1000000 << std::setw(14) << std::right << bValues[i];
-        if((i%3==0)||(i==numIncEnerB-1))
+        if(((i+1)%3==0)||(i==numIncEnerB-1))
             stream << '\n';
     }
 }

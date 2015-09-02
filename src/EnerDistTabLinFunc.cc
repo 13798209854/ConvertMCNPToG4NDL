@@ -243,7 +243,7 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream &stream)
             }
             stream << std::setw(14) << std::right << outProbDist[j];
             sum += outProbDist[j];
-            if((j%3==0)||(j==2*numPEnerPoints[i]-1))
+            if(((j+1)%3==0)||(j==2*numPEnerPoints[i]-1))
                 stream << '\n';
         }
         if(sum==0.)

@@ -124,7 +124,7 @@ void CSDistYieldComp::WriteG4NDLYieldData(stringstream &stream )
     {
         stream << std::setw(14) << std::right << enerVec[i]*1000000;
         stream << std::setw(14) << std::right << yieldVec[i];
-        if((i%3==0)||(i==numIncEner-1))
+        if(((i+1)%3==0)||(i==numIncEner-1))
             stream << '\n';
     }
 }

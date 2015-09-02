@@ -71,11 +71,13 @@ void CSDist1DTabP::WriteG4NDLYieldData(stringstream &stream )
                 stream << std::setw(14) << std::right << 0.;
         }
         else
+        {
             if(csVec[i+startEner-csEnerStart]!=0.)
                 stream << std::setw(14) << std::right << CSVec[i]/csVec[i+startEner-csEnerStart];
             else
                 stream << std::setw(14) << std::right << 0.;
-        if((i%3==0)||(i==CSVecSize-1))
+        }
+        if(((i+1)%3==0)||(i==CSVecSize-1))
             stream << '\n';
     }
 }

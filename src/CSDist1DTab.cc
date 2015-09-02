@@ -50,7 +50,7 @@ void CSDist1DTab::WriteG4NDLCSData(stringstream &stream )
 
     for(int i=0; i<CSVecSize; i++)
     {
-        if((i%3==0)||(i==CSVecSize-1))
+        if(((i+1)%3==0)||(i==CSVecSize-1))
             stream << '\n';
         stream << std::setw(14) << std::right << enerVec[i+startEner-1]*1000000;
         stream << std::setw(14) << std::right << CSVec[i];

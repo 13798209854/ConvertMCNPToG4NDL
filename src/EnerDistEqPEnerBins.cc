@@ -139,7 +139,7 @@ void EnerDistEqPEnerBins::WriteG4NDLData(stringstream &stream)
                 {
                     cout << "break here" << '\n';
                 }
-                if((j%3==0)||(j==1))
+                if(((j+1)%3==0)||(j==1))
                     stream << '\n';
             }
         }

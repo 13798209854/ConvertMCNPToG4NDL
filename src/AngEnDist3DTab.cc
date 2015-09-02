@@ -342,7 +342,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
                 stream << std::setw(14) << std::right << outEnProbNew[i][j][k];
                 sum += outEnProbNew[i][j][k];
-                if((k%3==0)||(k==numPEnerPoints[i]-1))
+                if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
             }
             if(sum==0.)

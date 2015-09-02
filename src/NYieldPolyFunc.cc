@@ -29,7 +29,7 @@ void NYieldPolyFunc::WriteG4NDLData(stringstream &stream)
     for(int i=0; i< numCoeff; i++)
     {
         stream << std::setw(14) << std::right << coeff[i];
-        if((i%6==0)||(i==numCoeff-1))
+        if(((i+1)%6==0)||(i==numCoeff-1))
             stream << '\n';
     }
 }

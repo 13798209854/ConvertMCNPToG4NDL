@@ -224,7 +224,7 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
                 stream << std::setw(14) << std::right << outEnerProb[i][k]*outAngProb[i][k][j];
                 sum += outEnerProb[i][k]*outAngProb[i][k][j];
-                if((k%3==0)||(k==numPEnerPoints[i]-1))
+                if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
             }
             if(sum==0.)

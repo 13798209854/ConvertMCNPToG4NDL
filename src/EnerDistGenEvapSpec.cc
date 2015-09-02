@@ -108,7 +108,7 @@ void EnerDistGenEvapSpec::WriteG4NDLData(stringstream &stream)
     for(int i=0; i<numNormOutEnerDistPoints; i++)
     {
         stream << std::setw(14) << std::right << outEnerMulti[i] << std::setw(14) << std::right << 1.0/(numNormOutEnerDistPoints);
-        if((i%3==0)||(i==numNormOutEnerDistPoints-1))
+        if(((i+1)%3==0)||(i==numNormOutEnerDistPoints-1))
             stream << '\n';
     }
 }

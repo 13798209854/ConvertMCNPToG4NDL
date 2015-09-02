@@ -91,8 +91,8 @@ void NDelayConstDist::WriteG4NDLData(stringstream &stream)
     stream << std::setw(14) << std::right << numDNPrecursorFam;
     for(int i=0; i<numDNPrecursorFam; i++)
     {
-        if((i%6==0)||(i==numDNPrecursorFam-1))
+        if(((i+1)%6==0)||(i==numDNPrecursorFam-1))
             stream << endl;
-        stream << std::setw(14) << std::right << delConst[i];
+        stream << std::setw(14) << std::right << delConst[i]*1.0e+8;
     }
 }

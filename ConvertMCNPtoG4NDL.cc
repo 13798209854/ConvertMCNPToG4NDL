@@ -396,7 +396,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     dataTemperature=dataTemperature*1000000/(8.6173324*(pow(10, -5)));
     numConv << dataTemperature;
     numConv >> temperature;
-
+    //We set the dataTemperature to zero here to see what happens
+    //dataTemperature=0.;
     if(limitTemp&&(dataTemperature!=setTemperature))
     {
         return 0;
@@ -3597,7 +3598,7 @@ void MakeFissionFSFile(int *MTRList, int *MTRListPos, string outDirName, string 
     //fission fragment data
     stream << std::setw(14) << std::right << 5 << std::setw(14) << std::right << 1 << '\n';
     stream << std::setw(14) << std::right << 0;
-    stream << std::setw(14) << std::right << reacQValue[2]*0.96; // this is a big approximation but is only relavant if fission fragment generation will be used in GEANT4,
+    stream << std::setw(14) << std::right << reacQValue[2]*0.96*1.0e+06; // this is a big approximation but is only relavant if fission fragment generation will be used in GEANT4,
     // could be fixed by subtracting Q by the sum of the average out-going neutron and photon energy
     stream << std::setw(14) << std::right << 0;
     stream << std::setw(14) << std::right << 0;
@@ -4486,8 +4487,8 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
 
-                            stream << std::setw(14) << std::right << reacQValue[i];
-                            stream << std::setw(14) << std::right << reacQValue[i];
+                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
+                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
 
                             if(abs(TYRList[i])>100)
                                 nYieldReac[i]->WriteG4NDLData(stream);
@@ -4708,7 +4709,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 3 << '\n';
                 stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0 << '\n';
                 //dummy variables at the beginning of the file
-                stream << std::setw(14) << std::right << reacQValue[i] << std::setw(14) << std::right << 0;
+                stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06 << std::setw(14) << std::right << 0;
                 nCSVec[i]->WriteG4NDLCSData(stream);
                 stream << '\n' << endl;
 
@@ -4841,8 +4842,8 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                                 stream << std::setw(14) << std::right << 7 << '\n';
                             }
 
-                            stream << std::setw(14) << std::right << reacQValue[i];
-                            stream << std::setw(14) << std::right << reacQValue[i];
+                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
+                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
 
                             if(abs(TYRList[i])>100)
                                 nYieldReac[i]->WriteG4NDLData(stream);
