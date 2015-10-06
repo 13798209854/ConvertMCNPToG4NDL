@@ -145,8 +145,9 @@ void SetDataStream( string, std::stringstream&, bool, bool overWrite=true);
 // X Check NU block extraction, unclear what XSS(JXS(2)) means versus JXS(2)
 // X Since there is no inelastic scattering for 1001 MCNP doesn't bother giving a cross-section file which causes G4STORK to not use the MCNP data for 1001,
 //  we fixed this issue by forcing MCNP to output a cross-section file for the reaction which sets the probability of the reaction to zero for all incoming neutron energies
+// X Add /Inelastic/Gammas/, not nesscesary since GEANT4 uses the photon spectrum data instead of the data in /Inelastic/Gammas/, if present and MCNP always provides
+//  the spectrum data
 
-// Add /Inelastic/Gammas/
 // Compare liams converted data to ours
 // We use the average CS when we weight reactions for mixing energy/ angular distributions. a more exact way would be completely mix the cross-section data with the dist probability data, preserving
 //  the accuracy of the data by using an energy vector that is a combination of both schemes, this would heavily slow down the simulation for probably little accuracy gain
@@ -159,6 +160,8 @@ void SetDataStream( string, std::stringstream&, bool, bool overWrite=true);
 
 //Takes in a directory of MCNP cross-section libraries, converts the data into the G4NDL format and then outputs the information in a given directory
 
+// ** Error with the CS data included in the F01/ dir, the CS data extends over too wide an energy regime see 27058 compared to G4NDL, make sure the right CS data is assigned to the right sub-process
+
 int main(int argc, char **argv)
 {
     ElementNames elementNames;
@@ -169,7 +172,7 @@ int main(int argc, char **argv)
     string word, libName="endf";
     char lib, version='7', check1, check2, check3;
     string inFileName, outDirName, fileName;
-    int result=0;
+    int result=0, pos;
     double temperature;
 
     stringstream stream;
@@ -235,17 +238,21 @@ int main(int argc, char **argv)
                     stream >> word;
                     while(stream)
                     {
-                        check1=word[int(word.find_last_of('.')+1)];
-                        check2=word[int(word.find_last_of('.')+2)];
-                        check3=word[int(word.find_last_of('.')+3)];
+                        pos = word.find_last_of('.');
+                        check1=word[int(pos+1)];
+                        check2=word[int(pos+2)];
+                        check3=word[int(pos+3)];
 
                         //checks whether the word matches the beggining of an isotope data set identifier
                         if((check1==version)&&((check2>='0')&&(check2<='9'))/*&&((check3=='c')||(check3=='d'))*/)
                         {
                             if((check3=='c')||(check3=='d'))
                             {
-                                // gets the elastic, inelastic, fission and capture CS data for the isotope
-                                result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS);
+                                if(!((pos==5)&&(word[2]=='4')))
+                                {
+                                    // gets the elastic, inelastic, fission and capture CS data for the isotope
+                                    result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS);
+                                }
                             }
                         }
                         stream >> word;
@@ -267,17 +274,21 @@ int main(int argc, char **argv)
         stream >> word;
         while(stream)
         {
-            check1=word[int(word.find_last_of('.')+1)];
-            check2=word[int(word.find_last_of('.')+2)];
-            check3=word[int(word.find_last_of('.')+3)];
+            pos = word.find_last_of('.');
+            check1=word[int(pos+1)];
+            check2=word[int(pos+2)];
+            check3=word[int(pos+3)];
 
             //checks whether the word matches the beggining of an isotope data set identifier
             if((check1==lib)&&((check2>='0')&&(check2<='9'))/*&&((check3=='c')||(check3=='d'))*/)
             {
                 if((check3=='c')||(check3=='d'))
                 {
-                    // gets the elastic, inelastic, fission and capture CS data for the isotope
-                    result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS);
+                    if(!((pos==5)&&(word[2]=='4')))
+                    {
+                        // gets the elastic, inelastic, fission and capture CS data for the isotope
+                        result += CreateIsoCSData(stream, outDirName, ascii, temperature, limitTemp, onlyCS);
+                    }
                 }
             }
             stream >> word;
@@ -4358,7 +4369,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 //probability of reaction occuring
                 stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 3 << '\n';
                 //dummy variables at the beginning of the file
-                stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0;
+                stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0 << endl;
                 nCSVec[i]->WriteG4NDLCSData(stream);
 
                 //prompt neutrons
@@ -4488,7 +4499,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
 
                             stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
-                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
+                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06 << endl;
 
                             if(abs(TYRList[i])>100)
                                 nYieldReac[i]->WriteG4NDLData(stream);
@@ -4501,7 +4512,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                                 stream << std::setw(14) << std::right << abs(TYRList[i]);
 
                                 stream << std::setw(14) << std::right << 20000000.0;
-                                stream << std::setw(14) << std::right <<  abs(TYRList[i]);
+                                stream << std::setw(14) << std::right <<  abs(TYRList[i]) << endl;
                             }
 
                             angEnDist[i][count]->WriteG4NDLData(stream);
@@ -4709,7 +4720,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                 stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 3 << '\n';
                 stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0 << '\n';
                 //dummy variables at the beginning of the file
-                stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06 << std::setw(14) << std::right << 0;
+                stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06 << std::setw(14) << std::right << 0 << endl;
                 nCSVec[i]->WriteG4NDLCSData(stream);
                 stream << '\n' << endl;
 
@@ -4843,7 +4854,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
 
                             stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
-                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06;
+                            stream << std::setw(14) << std::right << reacQValue[i]*1.0e+06 << endl;
 
                             if(abs(TYRList[i])>100)
                                 nYieldReac[i]->WriteG4NDLData(stream);
@@ -4856,7 +4867,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                                 stream << std::setw(14) << std::right << abs(TYRList[i]);
 
                                 stream << std::setw(14) << std::right << 20000000.0;
-                                stream << std::setw(14) << std::right << abs(TYRList[i]);
+                                stream << std::setw(14) << std::right << abs(TYRList[i]) << endl;
                             }
 
                             angEnDist[i][count]->WriteG4NDLData(stream);

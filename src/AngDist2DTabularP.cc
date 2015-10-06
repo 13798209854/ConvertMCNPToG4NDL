@@ -38,14 +38,17 @@ void AngDist2DTabularP::WriteG4NDLData(stringstream &stream)
         sum=0.;
         for(int j=0; j<numAngProb[i]; j++)
         {
-            stream << std::setw(14) << std::right << angVec[i][j] << std::setw(14) << std::right << angProbVec[i][j];
             sum += angProbVec[i][j];
-            if(((j+1)%3==0)||(j==numAngProb[i]-1))
-                stream << '\n';
         }
         if(sum==0.)
         {
             cout << "Error with angular probability data AngDist2DTabularP.cc:48" << endl;
+        }
+        for(int j=0; j<numAngProb[i]; j++)
+        {
+            stream << std::setw(14) << std::right << angVec[i][j] << std::setw(14) << std::right << angProbVec[i][j]/sum;
+            if(((j+1)%3==0)||(j==numAngProb[i]-1))
+                stream << '\n';
         }
     }
 }
