@@ -112,12 +112,12 @@ void EnerDistEqPEnerBins::WriteG4NDLData(stringstream &stream)
                 {
                     enerRange += outEner[i][j]-outEner[i][j-1];
                 }
-                if((j%3==0)||(j==numOutEnerPerInc-2))
+                if(((j+1)%3==0)||(j==numOutEnerPerInc-2))
                     stream << '\n';
             }
             if(enerRange==0.)
             {
-                cout << "break here" << '\n';
+                cout << "Error in EnerDistEqPEnerBins::WriteG4NDLData" << '\n';
             }
         }
         else if(numOutEnerPerInc<2)
@@ -137,7 +137,7 @@ void EnerDistEqPEnerBins::WriteG4NDLData(stringstream &stream)
                 stream << std::setw(14) << std::right << outEner[i][j]*1000000 << std::setw(14) << std::right << 1.0/2;
                 if((j>0)&&(outEner[i][j]==outEner[i][j-1]))
                 {
-                    cout << "break here" << '\n';
+                    cout << "Error in EnerDistEqPEnerBins::WriteG4NDLData" << '\n';
                 }
                 if(((j+1)%3==0)||(j==1))
                     stream << '\n';

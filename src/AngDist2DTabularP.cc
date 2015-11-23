@@ -40,7 +40,7 @@ void AngDist2DTabularP::WriteG4NDLData(stringstream &stream)
         {
             sum += angProbVec[i][j];
         }
-        if(sum==0.)
+        if(sum<=0.)
         {
             cout << "Error with angular probability data AngDist2DTabularP.cc:48" << endl;
         }

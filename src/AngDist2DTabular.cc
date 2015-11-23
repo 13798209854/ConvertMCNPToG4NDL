@@ -54,6 +54,7 @@ void AngDist2DTabular::ExtractMCNPData(stringstream &stream, int &count)
 void AngDist2DTabular::WriteG4NDLData(stringstream &stream)
 {
     double sum;
+
     for(int i=0; i<int(incNEnerVec.size()); i++)
     {
         stream << std::setw(14) << std::right << temperature << std::setw(14) << std::right << (incNEnerVec[i]*1000000) << std::setw(14) << std::right
@@ -69,7 +70,7 @@ void AngDist2DTabular::WriteG4NDLData(stringstream &stream)
             if(((j+1)%3==0)||(j==numAngProb[i]-1))
                 stream << '\n';
         }
-        if(sum==0.)
+        if(sum<=0.)
         {
             cout << "Error with angular probability data AngDist2DTabular.cc:74" << endl;
         }

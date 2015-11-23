@@ -26,9 +26,12 @@ void NYieldPolyFunc::ExtractMCNPData(stringstream &stream, int &count)
 void NYieldPolyFunc::WriteG4NDLData(stringstream &stream)
 {
     stream << std::setw(14) << std::right << numCoeff << '\n';
+    int order=1;
     for(int i=0; i< numCoeff; i++)
     {
-        stream << std::setw(14) << std::right << coeff[i];
+    //  for some reason G4NDL uses the incoming energy in eV instead of MeV hence /1.0e+06
+        stream << std::setw(14) << std::right << coeff[i]/(order);
+        order*=1.0e+06;
         if(((i+1)%6==0)||(i==numCoeff-1))
             stream << '\n';
     }

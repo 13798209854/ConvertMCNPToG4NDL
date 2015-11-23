@@ -166,7 +166,10 @@ class AngDist32EqualPBin: public AngularDist
                 prob[count]=1.0/(32*(angVec[low][lowAng+1]-angVec[low][lowAng]))/sumProb;
                 count++;
             }
-            return AngularDist::Interpolate(2, incNEner, incNEnerVec[low], incNEnerVec[low+1], prob[0], prob[1]);
+            if(incNEnerVec.size()==1)
+                return max(0.,prob[0]);
+            else
+                return max(0.,AngularDist::Interpolate(2, incNEner, incNEnerVec[cond-2], incNEnerVec[cond-1], prob[0], prob[1]));
         }
 
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)

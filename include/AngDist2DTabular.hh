@@ -71,6 +71,7 @@ class AngDist2DTabular: public AngularDist
 
             angVec.push_back(new double[intTemp]);
             angProbVec.push_back(new double[intTemp]);
+            angProbSumVec.push_back(new double[intTemp]);
 
             for(int k=0; k<numAngProb.back(); k++, count++)
             {
@@ -90,7 +91,24 @@ class AngDist2DTabular: public AngularDist
             }
             for(int k=0; k<numAngProb.back(); k++, count++)
             {
-                stream >> dummy;
+                stream >> temp;
+                angProbSumVec.back()[k]=temp;
+            }
+            for(int k=0; k<numAngProb.back(); k++)
+            {
+                // here we set correct the angular prob so that it is integrated over its angular regime
+                if(angVec.back()[k]==0.0)
+                    angVec.back()[k]=1.0e-12;
+
+                if(k==0)
+                {
+                    if(numAngProb.back()==2)
+                        angProbVec.back()[k] = angProbSumVec.back()[k]-angProbSumVec.back()[k-1];
+                    else
+                        angProbVec.back()[k] = angProbSumVec.back()[k];
+                }
+                else
+                    angProbVec.back()[k]=angProbSumVec.back()[k]-angProbSumVec.back()[k-1];
             }
         }
 
@@ -210,7 +228,10 @@ class AngDist2DTabular: public AngularDist
                     prob[count]=0.;
                 count++;
             }
-            return AngularDist::Interpolate(intSchemeAng[low-2], incNEner, incNEnerVec[low-2], incNEnerVec[low-1], prob[0], prob[1]);
+            if(incNEnerVec.size()==1)
+                return max(0.,prob[0]);
+            else
+                return max(0.,AngularDist::Interpolate(2, incNEner, incNEnerVec[cond-2], incNEnerVec[cond-1], prob[0], prob[1]));
         }
         void SumAngularData(vector<AngularDist*> *angDistList, CSDist **nCSDistList, int startList, int endList, int &numAngEner)
         {
@@ -291,7 +312,7 @@ class AngDist2DTabular: public AngularDist
                     {
                         sumCheck += angProbVec.back()[k];
                     }
-                    if(sumCheck==0.)
+                    if(sumCheck<=0.)
                     {
                         cout << "Error in the summation of the angular probability data : AngDist2DTabular.hh:259" << endl;
                     }
@@ -313,7 +334,7 @@ class AngDist2DTabular: public AngularDist
         {
             cout << "this function has not been implemented" << endl;
         }
-        vector <double*> angVec, angProbVec;
+        vector <double*> angVec, angProbVec, angProbSumVec;
         vector<int> intSchemeAng, numAngProb;
         double dummy;
     protected:

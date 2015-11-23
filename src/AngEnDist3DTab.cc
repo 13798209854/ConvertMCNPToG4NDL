@@ -81,6 +81,7 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream &stream, int &count)
     int intTemp;
     double temp;
     string dummy;
+    double outEnerPropSumTemp;
 
     stream >> numRegs; count++;
     if(numRegs==0)
@@ -178,16 +179,25 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream &stream, int &count)
             stream >> temp;
             outEner[i][j] = temp;
         }
+        outEnerPropSumTemp=0.;
         for(int j=0; j<numPEnerPoints[i]; j++, count++)
         {
             stream >> temp;
             outEnerProb[i][j] = temp;
+            outEnerPropSumTemp+=temp;
         }
         for(int j=0; j<numPEnerPoints[i]; j++, count++)
         {
             stream >> temp;
             outEnerSumProb[i][j] = temp;
         }
+//        if(outEnerPropSumTemp!=0.)
+//        {
+//            for(int j=0; j<numPEnerPoints[i]; j++)
+//            {
+//                outEnerProb[i][j] /= outEnerPropSumTemp;
+//            }
+//        }
         for(int j=0; j<numPEnerPoints[i]; j++, count++)
         {
             stream >> temp;
@@ -253,12 +263,47 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
     vector<double> *outAngNew = new vector<double> [numIncEner];
     double ***outEnProbNew = new double** [numIncEner];
 
+    // here we set correct the energy prob so that it is integrated over its energy regime
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            if(j==0)
+            {
+                if(outEner[i][j]==0.)
+                    outEner[i][j]=1.0e-12;
+
+                if(numPEnerPoints[i]==2)
+                    outEnerProb[i][j] = outEnerSumProb[i][j+1];
+                else
+                    outEnerProb[i][j] = outEnerSumProb[i][j];
+            }
+            else
+                outEnerProb[i][j] = outEnerSumProb[i][j]-outEnerSumProb[i][j-1];
+        }
+    }
+    // here we set correct the energy prob so that it is integrated over its energy regime
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            for(int k=0; k<numPAngPoints[i][j]; k++)
+            {
+                if(k==0)
+                    outAngProb[i][j][k] = outAngSumProb[i][j][k];
+                else
+                    outAngProb[i][j][k] = outAngSumProb[i][j][k]-outAngSumProb[i][j][k-1];
+            }
+        }
+    }
+
     for(int i=0; i<numIncEner; i++)
     {
         sumAngPoints[i]=0;
         for(int j=0; j<numPEnerPoints[i]; j++)
         {
             sumAngPoints[i]+=numPAngPoints[i][j];
+            //take this out later when we have fixed the G4NeutronHpVector so that it doesn't make multiple copies of 0 every time it merges two data sets
 
             int k=0, l=0;
             while((k<numPAngPoints[i][j])&&(l<int(outAngNew[i].size())))
@@ -307,6 +352,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
                 l--;
                 if(l<0)
                     l=0;
+                //added on angle width so that the data would be properly interpereted by G4NeutronHPLabAngularEnergy.cc
                 outEnProbNew[i][j][k]=outEnerProb[i][k]*max(0.,Interpolate(intScheme3[i][k], outAngNew[i][j], outAng[i][k][l], outAng[i][k][l+1], outAngProb[i][k][l], outAngProb[i][k][l+1]));
             }
         }
@@ -345,9 +391,9 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
                 if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
             }
-            if(sum==0.)
+            if(sum<=0.)
             {
-                cout << "Error with angular energy probability data" << endl;
+                //cout << "Error with angular energy probability data" << endl;
             }
         }
     }
@@ -469,7 +515,7 @@ void AngEnDist3DTab::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **
         }
         if(sumEn==0.)
         {
-            cout << "break here" << endl;
+            cout << "Error in AngEnDist3DTab::ConvertToEnerAndAngDist" << endl;
         }
     }
     enDist[0] = new EnerDistConTab(numRegs, regEndPos, intScheme1, numIncEner, incEner, intScheme2, outEnerConv, outEnerProbConv);

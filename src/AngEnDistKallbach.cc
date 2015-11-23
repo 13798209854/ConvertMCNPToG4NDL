@@ -195,6 +195,26 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
     //convert this to G4NDL DistLaw=7
     // may be able to exactly convert it to DistLaw=1
 
+    // here we set correct the energy prob so that it is integrated over its energy regime
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            if(j==0)
+            {
+                if(outEner[i][j]==0.)
+                    outEner[i][j]=1.0e-12;
+
+                if(numPEnerPoints[i]==2)
+                    outEnerProb[i][j] = outEnerSumProb[i][j+1];
+                else
+                    outEnerProb[i][j] = outEnerSumProb[i][j];
+            }
+            else
+                outEnerProb[i][j] = outEnerSumProb[i][j]-outEnerSumProb[i][j-1];
+        }
+    }
+
      stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
@@ -227,7 +247,7 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
                 if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
             }
-            if(sum==0.)
+            if(sum<=0.)
             {
                 cout << "Error with angular energy probability data" << endl;
             }
@@ -331,9 +351,9 @@ void AngEnDistKallbach::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist
             outEnerProbConv[i].push_back(outEnerProb[i][j]);
             sumEn+=outEnerProb[i][j];
         }
-        if(sumEn==0.)
+        if(sumEn<=0.)
         {
-            cout << "break here" << endl;
+            cout << "Error in AngEnDistKallbach::ConvertToEnerAndAngDist" << endl;
         }
     }
     enDist[0] = new EnerDistConTab(numRegs, regEndPos, intScheme1, numIncEner, incEner, intScheme2, outEnerConv, outEnerProbConv);

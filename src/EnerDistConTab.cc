@@ -190,6 +190,23 @@ void EnerDistConTab::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 4
     //convert this to G4NDL theRepresentationType=1
+
+    // here we set correct the energy prob so that it is integrated over its energy regime
+    for(int i=0; i<numIncEner; i++)
+    {
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            if(outEner[i][j]==0.)
+                    outEner[i][j]=1.0e-12;
+            if(j==numPEnerPoints[i]-1)
+            {
+                outProb[i][j] = outSumProb[i][j];
+            }
+            else
+                outProb[i][j] = outSumProb[i][j+1]-outSumProb[i][j];
+        }
+    }
+
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
@@ -221,16 +238,16 @@ void EnerDistConTab::WriteG4NDLData(stringstream &stream)
                 }
                 stream << std::setw(14) << std::right << outProb[i][j];
                 sum+=outProb[i][j];
-                if((j%3==0)||(j==numPEnerPoints[i]-1))
+                if(((j+1)%3==0)||(j==numPEnerPoints[i]-1))
                     stream << '\n';
             }
             if(sum == 0.)
             {
-                cout << "break here" << '\n';
+                cout << "Error in EnerDistConTab::WriteG4NDLData" << '\n';
             }
             if(enerRange==0.)
             {
-                cout << "break here" << '\n';
+                cout << "Error in EnerDistConTab::WriteG4NDLData" << '\n';
             }
         }
         else
@@ -242,6 +259,8 @@ void EnerDistConTab::WriteG4NDLData(stringstream &stream)
 
             for(int j=0; j<2; j++)
             {
+                if(outEner[i][0]==0.)
+                    outEner[i][0]=1.0e-12;
                 stream << std::setw(14) << std::right << (0.999+double(j)*0.002)*outEner[i][0]*1000000;
                 stream << std::setw(14) << std::right << 0.5;
                 if(((j+1)%3==0)||(j==1))

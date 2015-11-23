@@ -43,7 +43,7 @@ void CSDist1DTabP::WriteG4NDLCSData(stringstream &stream )
     {
         stream << std::setw(14) << std::right << enerCSVec[j+startEner-1]*1000000;
         stream << std::setw(14) << std::right << CSVec[j];
-        if(j%3==0)
+        if((j+1)%3==0)
             stream << '\n';
     }
 }

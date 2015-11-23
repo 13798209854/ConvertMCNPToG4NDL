@@ -106,7 +106,7 @@ void CSDistYieldComp::WriteG4NDLCSData(stringstream &stream )
 
         csNum = (enerVec[i]-enerCSVec[i])*(csVec[csIndex+1]-csVec[csIndex])/(enerCSVec[i+1]-enerCSVec[i])+csVec[csIndex];
         stream << std::setw(14) << std::right << (yieldVec[j]*csNum);
-        if(j%3==0)
+        if((j+1)%3==0)
             stream << '\n';
     }
 }

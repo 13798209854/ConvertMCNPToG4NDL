@@ -252,7 +252,7 @@ void EnerDistTabLinFunc::WriteG4NDLData(stringstream &stream)
         }
         if(enerRange==0.)
         {
-            cout << "break here" << '\n';
+            cout << "Error in EnerDistTabLinFunc::WriteG4NDLData" << '\n';
         }
         sum=0.;
 

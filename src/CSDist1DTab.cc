@@ -44,7 +44,7 @@ void CSDist1DTab::ExtractMCNPData(stringstream &stream, int &count)
 //Set up for Cross-section data
 void CSDist1DTab::WriteG4NDLCSData(stringstream &stream )
 {
-    stream << std::setw(14) << std::right << CSVecSize;
+    stream << std::setw(14) << std::right << CSVecSize << '\n';
     stream.precision(6);
     stream.setf(std::ios::scientific);
 
@@ -89,7 +89,7 @@ double CSDist1DTab::GetAvgCS()
         {
             csSum+=abs((CSVec[i]+CSVec[i+1])*(enerVec[i+startEner]-enerVec[i+startEner-1])/2);
         }
-        avgCS = csSum/(enerVec[startEner-1]-enerVec[startEner+CSVecSize-2]);
+        avgCS = csSum/(enerVec[startEner+CSVecSize-2]-enerVec[startEner-1]);
         setAvgCS = true;
     }
 
