@@ -89,14 +89,14 @@ class AngDist2DTabularP: public AngularDist
                 stream >> temp;
                 angProbSumVec.back()[k]=temp;
             }
-            for(int k=0; k<numAngProb.back(); k++)
-            {
-                // here we set correct the angular prob so that it is integrated over its angular regime
-                if(k==0)
-                    angProbVec.back()[k]=angProbSumVec.back()[k];
-                else
-                    angProbVec.back()[k]=angProbSumVec.back()[k]-angProbSumVec.back()[k-1];
-            }
+//            for(int k=0; k<numAngProb.back(); k++)
+//            {
+//                // here we set correct the angular prob so that it is integrated over its angular regime
+//                if(k==0)
+//                    angProbVec.back()[k]=angProbSumVec.back()[k];
+//                else
+//                    angProbVec.back()[k]=angProbSumVec.back()[k]-angProbSumVec.back()[k-1];
+//            }
         }
 
         void AddAngleVec(vector<double> &temp, double incNEner)

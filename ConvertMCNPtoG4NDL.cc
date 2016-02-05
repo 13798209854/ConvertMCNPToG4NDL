@@ -54,6 +54,9 @@ using namespace std;
 #include "include/NYield1DTab.hh"
 #include "include/NYieldPolyFunc.hh"
 
+//TOP-C
+#include <topc.h>
+
 //total number of processes
 #define numProcess 78
 //total number of processes not including those that make up the MT4 reaction
@@ -74,7 +77,7 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
                         vector<int> *enDisNumLawApplNRegP, vector<int> *enDisNumLawApplNEnP, vector<int*> *enDisSchemeVecP, vector<int*> *enDisRangeVecP,
                         vector<double*> *enDisEnApplVecP, vector<double*> *enDisProbApplVecP, double **energyAngVecP, CSDist *nCSVec, bool ascii);
 
-void CreateMT2(int* MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist* nCSVec[],
+void CreateMT18(int* MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist* nCSVec[],
                         vector<int>* enDisLaw, vector<int>* enDisNumLawApplNReg, vector<int>* enDisNumLawApplNEn, vector<int*>* enDisSchemeVec,
                         vector<int*>* enDisRangeVec, vector<double*>* enDisEnApplVec, vector<double*>* enDisProbApplVec, vector<EnergyDist*>* enerDist,
                         YieldDist* nYieldReac[], double* reacQValue, int* numAngEner, vector<AngularDist*>* angDist, bool* angDistInEnDistFlag,
@@ -145,8 +148,18 @@ void SetDataStream( string, std::stringstream&, bool, bool overWrite=true);
 // X Check NU block extraction, unclear what XSS(JXS(2)) means versus JXS(2)
 // X Since there is no inelastic scattering for 1001 MCNP doesn't bother giving a cross-section file which causes G4STORK to not use the MCNP data for 1001,
 //  we fixed this issue by forcing MCNP to output a cross-section file for the reaction which sets the probability of the reaction to zero for all incoming neutron energies
-// X Add /Inelastic/Gammas/, not nesscesary since GEANT4 uses the photon spectrum data instead of the data in /Inelastic/Gammas/, if present and MCNP always provides
+// X Add /Inelastic/Gammas/, not nesscesary since GEANT4 uses the photon spectrum data instead of the data in /Inelastic/Gammas/ if present and MCNP always provides
 //  the spectrum data
+// X turned off multiple states in angular energy distributions so that it only selects the first one, this fixes the bug of the G4STORK creating multiple times the yield that it should and
+   // brings the yield in line with the results produced by mcnp
+
+// XX This is a false error, GEANT4 does integrate the probabilities for us so supplying the average probability is the right answer,
+    // Error in the interpretation of MCNP data caused by geant4 assuming that the probablilities were integrated over their respected regime when they were actually just the average probability within their regime
+    // this caused errors when the regimes were not equally spaced causing larger regimes to have proportionatily less worth, we fixed this by substituting the probablity data for the difference in the
+    // cumulative probability data which is already an integral of the probability using the appropriate interpolation scheme
+    //X we modified the code so that it uses 1.0e-12 instead of 0 to prevent duplication errors caused by merging vectors in geant4
+    //X we modified the code so that the first is the same as the second instead of zero to avoid errors in G4NeutronHPPartial and G4NeutronHPVector
+
 
 // Compare liams converted data to ours
 // We use the average CS when we weight reactions for mixing energy/ angular distributions. a more exact way would be completely mix the cross-section data with the dist probability data, preserving
@@ -156,14 +169,96 @@ void SetDataStream( string, std::stringstream&, bool, bool overWrite=true);
 // Check photon enegy dist extraction in G4NDL and make sure that our approximation of mixing them is right
 // Check the delayed neutron energy distribution weight vector and see if we need to multiply it by the delayed group weight
 // Inelastic/F36/ is not created because the reaction does not appear in the MCNP data, check to make sure this is correct
+// Error in G4NeutronHPVector::Merge made us make some alterations to AngEnDist3DTab at line 314-316 make sure we fix this once we fix the GEANT4 class
+
 // parrallelize code
 
 //Takes in a directory of MCNP cross-section libraries, converts the data into the G4NDL format and then outputs the information in a given directory
 
 // ** Error with the CS data included in the F01/ dir, the CS data extends over too wide an energy regime see 27058 compared to G4NDL, make sure the right CS data is assigned to the right sub-process
 
+#ifndef TOPC_USE
+#define TOPC_USE 0
+#endif
+
+bool master;
+
+#if TOPC_USE
+vector<string> fileNamesGBL;
+string outputTypeGBL="ascii";
+bool asciiGBL=true, onlyCSGBL=false, limitTempGBL=false;
+char versionGBL='7';
+string outDirNameGBL;
+double temperatureGBL;
+
+TOPC_BUF ConvertFile(int *index)
+{
+    int taskInput=*index;
+    string word;
+    char check1, check2, check3;
+    int result=0, pos;
+    stringstream stream;
+
+    GetDataStream(fileNamesGBL[taskInput], stream);
+    stream >> word;
+    while(stream)
+    {
+        pos = word.find_last_of('.');
+        check1=word[int(pos+1)];
+        check2=word[int(pos+2)];
+        check3=word[int(pos+3)];
+
+        //checks whether the word matches the beggining of an isotope data set identifier
+        if((check1==versionGBL)&&((check2>='0')&&(check2<='9'))/*&&((check3=='c')||(check3=='d'))*/)
+        {
+            if((check3=='c')||(check3=='d'))
+            {
+                if(!((pos==5)&&(word[2]=='4')))
+                {
+                    // gets the elastic, inelastic, fission and capture CS data for the isotope
+                    result = CreateIsoCSData(stream, outDirNameGBL, asciiGBL, temperatureGBL, limitTempGBL, onlyCSGBL);
+                }
+            }
+        }
+        stream >> word;
+    }
+    stream.str("");
+    stream.clear();
+    return TOPC_MSG( &result, sizeof(result) );
+}
+
+//CheckProgress
+//this function is run by the master process after a slave has finished converting a MCNP file
+//This takes in the results of the task assigned to slave and stores it in the master
+TOPC_ACTION CheckProgress(int* input, int *output)
+{
+    int taskInput=*input;
+    int taskOutput=*output;
+    if(taskOutput!=0)
+    {
+        cout << "Error: Could not convert " << fileNamesGBL[taskInput] << endl;
+    }
+    else
+    {
+        cout << "Converted " << fileNamesGBL[taskInput] << endl;
+    }
+    return NO_ACTION;
+}
+#endif
+
 int main(int argc, char **argv)
 {
+
+#if TOPC_USE
+    TOPC_OPT_trace = 0;
+	TOPC_OPT_slave_timeout=104000;
+    TOPC_init(&argc, &argv);
+    master = bool(TOPC_is_master());
+    int processID = TOPC_rank();
+#else
+    master=true;
+#endif
+
     ElementNames elementNames;
     elementNames.SetElementNames();
 
@@ -178,52 +273,107 @@ int main(int argc, char **argv)
     stringstream stream;
 
     //Extracts user Inputs
-    if(argc==7)
-    {
-        stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4] << ' ' << argv[5] << ' ' << argv[6];
-        stream >> inFileName >> outDirName >> outputType >> version >> onlyCS >> temperature;
-        limitTemp=true;
-    }
-    else if(argc==6)
-    {
-        stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4] << ' ' << argv[5];
-        stream >> inFileName >> outDirName >> outputType >> version >> onlyCS;
-    }
-    else if(argc==5)
-    {
-        stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4];
-        stream >> inFileName >> outDirName >> outputType >> version;
-    }
-    else if(argc==4)
-    {
-        stream << argv[1] << ' ' << argv[2] << ' ' << argv[3];
-        stream >> inFileName >> outDirName >> outputType;
-    }
-    else if(argc==3)
-    {
-        stream << argv[1] << ' ' << argv[2];
-        stream >> inFileName >> outDirName;
-    }
-    else
-    {
-        cout << "Incorrect number of inputs; give the MCNP file to be converted and the output directory for the created G4NDL files" << endl;
-        elementNames.ClearStore();
-        return 1;
-    }
+    #if TOPC_USE
+        if(argc == 2)
+        {
+            stream << argv[1];
+            stream >> fileName;
+            stream.str("");
+            stream.clear();
+        }
+        else
+        {
+            elementNames.ClearStore();
+            TOPC_finalize();
+            cout << "Please input a file containing the number of inputs, the MCNP data directory, \n the output directory, Optionally: the output type [ascii or compressed],\n \
+                    the endf version, a flag for converting only the CS data \nand the temperature data you are interested in" << endl;
+            return 0;
+        }
+        GetDataStream(fileName, stream);
+        int numInp;
+        stream >> numInp;
+        if(numInp==6)
+        {
+            stream >> inFileName >> outDirNameGBL >> outputTypeGBL >> versionGBL >> onlyCSGBL >> temperatureGBL;
+            limitTempGBL=true;
+        }
+        else if(numInp==5)
+        {
+            stream >> inFileName >> outDirNameGBL >> outputTypeGBL >> versionGBL >> onlyCSGBL;
+        }
+        else if(numInp==4)
+        {
+            stream >> inFileName >> outDirNameGBL >> outputTypeGBL >> versionGBL;
+        }
+        else if(numInp==3)
+        {
+            stream >> inFileName >> outDirNameGBL >> outputTypeGBL;
+        }
+        else if(numInp==2)
+        {
+            stream >> inFileName >> outDirNameGBL;
+        }
+        else
+        {
+            cout << "Incorrect number of inputs; give the MCNP directory to be converted and the output directory for the created G4NDL files" << endl;
+            elementNames.ClearStore();
+            return 1;
+        }
 
-    if(outputType == "compressed"||outputType == "compress"||outputType == "Compressed"||outputType == "Compress"||outputType == "Zipped"||outputType == "Zip"||outputType == "zipped"||outputType == "zip" )
-        ascii=false;
+        if(outputTypeGBL == "compressed"||outputTypeGBL == "compress"||outputTypeGBL == "Compressed"||outputTypeGBL == "Compress"||outputTypeGBL == "Zipped"||outputTypeGBL == "Zip"||outputTypeGBL == "zipped"||outputTypeGBL == "zip" )
+            asciiGBL=false;
+    #else
+        if(argc==7)
+        {
+            stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4] << ' ' << argv[5] << ' ' << argv[6];
+            stream >> inFileName >> outDirName >> outputType >> version >> onlyCS >> temperature;
+            limitTemp=true;
+        }
+        else if(argc==6)
+        {
+            stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4] << ' ' << argv[5];
+            stream >> inFileName >> outDirName >> outputType >> version >> onlyCS;
+        }
+        else if(argc==5)
+        {
+            stream << argv[1] << ' ' << argv[2] << ' ' << argv[3] << ' ' << argv[4];
+            stream >> inFileName >> outDirName >> outputType >> version;
+        }
+        else if(argc==4)
+        {
+            stream << argv[1] << ' ' << argv[2] << ' ' << argv[3];
+            stream >> inFileName >> outDirName >> outputType;
+        }
+        else if(argc==3)
+        {
+            stream << argv[1] << ' ' << argv[2];
+            stream >> inFileName >> outDirName;
+        }
+        else
+        {
+            cout << "Incorrect number of inputs; give the MCNP directory to be converted and the output directory for the created G4NDL files" << endl;
+            elementNames.ClearStore();
+            return 1;
+        }
+
+        if(outputType == "compressed"||outputType == "compress"||outputType == "Compressed"||outputType == "Compress"||outputType == "Zipped"||outputType == "Zip"||outputType == "zipped"||outputType == "zip" )
+            ascii=false;
+    #endif
 
     stream.clear();
     stream.str("");
 
     if(inFileName.back()=='/')
     {
+        #if TOPC_USE
+        libName.push_back(versionGBL);
+        #else
         libName.push_back(version);
+        #endif
         DIR *dir;
         struct dirent *ent;
 
-        //goes through the given directory and converts the ENDF libraries that match the given vversion
+        //goes through the given directory and converts the ENDF libraries that match the given version
         if ((dir = opendir (inFileName.c_str())) != NULL)
         {
             while ((ent = readdir (dir)) != NULL)
@@ -231,6 +381,9 @@ int main(int argc, char **argv)
                 if(string(ent->d_name).substr(0, 5)==libName)
                 {
                     fileName=inFileName+ent->d_name;
+                    #if TOPC_USE
+                    fileNamesGBL.push_back(fileName);
+                    #else
                     cout << "Opening file: " << fileName << endl;
                     // Gets data from the file and stores it into a data stream
                     GetDataStream(fileName, stream);
@@ -259,13 +412,54 @@ int main(int argc, char **argv)
                     }
                     stream.str("");
                     stream.clear();
+                    #endif
                 }
             }
             closedir(dir);
+            #if TOPC_USE
+
+            string strSwap;
+            for(int i=0; i<fileNamesGBL.size(); i++)
+            {
+                for(int j=i; j<fileNamesGBL.size(); j++)
+                {
+                    for(int k=0; k<min(fileNamesGBL[i].size(),fileNamesGBL[j].size()); k++)
+                    {
+                        if((fileNamesGBL[i][k]>fileNamesGBL[j][k])||((k==min(fileNamesGBL[i].size(),fileNamesGBL[j].size())-1)&&(fileNamesGBL[i].size()>fileNamesGBL[j].size())))
+                        {
+                            strSwap = fileNamesGBL[i];
+                            fileNamesGBL[i] = fileNamesGBL[j];
+                            fileNamesGBL[j] = strSwap;
+                            break;
+                        }
+                        else if(fileNamesGBL[i][k]<fileNamesGBL[j][k])
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            TOPC_raw_begin_master_slave( ConvertFile, CheckProgress, NULL );
+            if(master)
+            {
+                for(int i=0; i<fileNamesGBL.size(); i++)
+                {
+                    int count=i;
+                    //cout << "Converting " << fileNamesGBL[i] << endl;
+                    TOPC_raw_submit_task_input(TOPC_MSG(&count,sizeof(count)));
+                }
+            }
+            TOPC_raw_end_master_slave();
+            #endif
         }
     }
     else
     {
+        #if TOPC_USE
+        cout << "Error: Only one file is given use sequential mode" << endl;
+        elementNames.ClearStore();
+        return 1;
+        #else
         // Gets data from the file and stores it into a data stream
         cout << "Opening file: " << inFileName << endl;
         GetDataStream(inFileName, stream);
@@ -293,11 +487,23 @@ int main(int argc, char **argv)
             }
             stream >> word;
         }
+        #endif
     }
 
-    system( ("chmod -R  777 "+outDirName).c_str());
+    if(master)
+    {
+        #if TOPC_USE
+            system( ("chmod -R  777 "+outDirNameGBL).c_str());
+        #else
+            system( ("chmod -R  777 "+outDirName).c_str());
+        #endif
+    }
+
     elementNames.ClearStore();
 
+    #if TOPC_USE
+        TOPC_finalize();
+    #endif
     if(result>1)
         result=1;
     return result;
@@ -314,7 +520,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     int Znum, isoNum;
     double isoMass, dataTemperature;
     int yieldDistType;
-    bool promptYieldFlag=false, totalYieldFlag=false, createMT4Flag=false, createMT2Flag=false;
+    bool promptYieldFlag=false, totalYieldFlag=false, createMT4Flag=false, CreateMT18Flag=false;
 
     //fixed location data
     int numCSEner=0, numReactions=0, numReacSecN=0, numPReactions=0, numDNPrecursorFam=0;
@@ -1936,8 +2142,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
     //Create Fission FS files
     if(MTRListPos[2]==-1)
     {
-        createMT2Flag=true;
-        CreateMT2(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
+        CreateMT18Flag=true;
+        CreateMT18(MTRListPos, outDirName, isoName, isoNum, isoMass, dataTemperature, MTRList, nCSVec, enDisLaw, enDisNumLawApplNReg, enDisNumLawApplNEn,
                         enDisSchemeVec, enDisRangeVec, enDisEnApplVec, enDisProbApplVec, enerDist, nYieldReac, reacQValue, numAngEner, angDist,
                         angDistInEnDistFlag, angEnDist, &pCSVec, TYRList, &numAngEnerP, &angDistP, &enDisLawP, &enDisNumLawApplNRegP, &enDisNumLawApplNEnP, &enDisSchemeVecP,
                         &enDisRangeVecP, &enDisEnApplVecP, &enDisProbApplVecP, &enerDistP, MTRPList, &energyAngVecP, ascii);
@@ -2007,7 +2213,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         }
         for(int j=0; j<int(enerDist[i].size()); j++)
         {
-            if((!(createMT4Flag&&(i>=numProcess2)))&&(!(createMT2Flag&&(i>2)&&(i<7))))
+            if((!(createMT4Flag&&(i>=numProcess2)))&&(!(CreateMT18Flag&&(i>2)&&(i<7))))
             {
                 if(enerDist[i][j]!=NULL)
                     delete enerDist[i][j];
@@ -2015,7 +2221,7 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
         }
         for(int j=0; j<int(angEnDist[i].size()); j++)
         {
-            if((!(createMT4Flag&&(i>=numProcess2)))&&(!(createMT2Flag&&(i>2)&&(i<7))))
+            if((!(createMT4Flag&&(i>=numProcess2)))&&(!(CreateMT18Flag&&(i>2)&&(i<7))))
             {
                 if(angEnDist[i][j]!=NULL)
                     delete angEnDist[i][j];
@@ -2037,8 +2243,6 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
             delete [] MFType;
         if(LANDPList!=NULL)
             delete [] LANDPList;
-        if(numAngEnerP!=NULL)
-            delete [] numAngEnerP; // the number of incoming neutron energy points for the angular distribution
         if(LDLWPList!=NULL)
             delete [] LDLWPList;
         /*for(int i=0; i<int(mtNums.size());i++)
@@ -2100,7 +2304,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
                     delete angEnDistP[i][j];
             }
         }
-
+        if(numAngEnerP!=NULL)
+            delete [] numAngEnerP; // the number of incoming neutron energy points for the angular distribution
         if(energyAngVecP!=NULL)
             delete [] energyAngVecP;
         if(angDistP!=NULL)
@@ -2119,6 +2324,8 @@ int CreateIsoCSData(stringstream &stream, string outDirName, bool ascii, double 
             delete [] enDisEnApplVecP;
         if(enerDistP!=NULL)
             delete [] enerDistP;
+        if(angEnDistP!=NULL)
+            delete [] angEnDistP;
     }
 
     //delete out going delayed neutron data
@@ -2684,7 +2891,7 @@ void MakeCaptureFSFile(string outDirName, string isoName, double isoMass, double
 
 }
 
-void CreateMT2(int* MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist* nCSVec[],
+void CreateMT18(int* MTRListPos, string outDirName, string isoName, int isoNum, double isoMass, double temperature, int *MTRList, CSDist* nCSVec[],
                         vector<int>* enDisLaw, vector<int>* enDisNumLawApplNReg, vector<int>* enDisNumLawApplNEn, vector<int*>* enDisSchemeVec,
                         vector<int*>* enDisRangeVec, vector<double*>* enDisEnApplVec, vector<double*>* enDisProbApplVec, vector<EnergyDist*>* enerDist,
                         YieldDist* nYieldReac[], double* reacQValue, int* numAngEner, vector<AngularDist*>* angDist, bool* angDistInEnDistFlag,
@@ -2869,27 +3076,38 @@ void CreateMT2(int* MTRListPos, string outDirName, string isoName, int isoNum, d
                 if(enDisLaw[j][k]<44)
                 {
                     enDisNumLawApplNReg[2].push_back(enDisNumLawApplNReg[j][k]);
-                    enDisNumLawApplNEn[2].push_back(enDisNumLawApplNEn[j][k]);
+                    enDisNumLawApplNEn[2].push_back(enDisNumLawApplNEn[j][k]+3);
                     enDisRangeVec[2].push_back(new int[enDisNumLawApplNReg[j][k]]);
                     for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
                     {
                         enDisRangeVec[2].back()[i]=enDisRangeVec[j][k][i];
                     }
+                    enDisRangeVec[2].back()[0]+=1;
+                    enDisRangeVec[2].back()[enDisNumLawApplNReg[j][k]-1]+=2;
+
                     enDisSchemeVec[2].push_back(new int[enDisNumLawApplNReg[j][k]]);
                     for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
                     {
                         enDisSchemeVec[2].back()[i]=enDisSchemeVec[j][k][i];
                     }
-                    enDisEnApplVec[2].push_back(new double[enDisNumLawApplNEn[j][k]]);
-                    for(int i=0; i<enDisNumLawApplNEn[j][k]; i++)
+
+                    enDisEnApplVec[2].push_back(new double[enDisNumLawApplNEn[2].back()]);
+                    enDisEnApplVec[2].back()[0]=enDisEnApplVec[j][k][0];
+                    for(int i=1; i<enDisNumLawApplNEn[j][k]+1; i++)
                     {
-                        enDisEnApplVec[2].back()[i]=enDisEnApplVec[j][k][i];
+                        enDisEnApplVec[2].back()[i]=enDisEnApplVec[j][k][i-1];
                     }
-                    enDisProbApplVec[2].push_back(new double [enDisNumLawApplNEn[j][k]]);
-                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    enDisEnApplVec[2].back()[enDisNumLawApplNEn[j][k]+1]=enDisEnApplVec[j][k][enDisNumLawApplNEn[j][k]-1]*1.000001;
+                    enDisEnApplVec[2].back()[enDisNumLawApplNEn[j][k]+2]=enDisEnApplVec[2].back()[enDisNumLawApplNEn[j][k]+1];
+
+                    enDisProbApplVec[2].push_back(new double [enDisNumLawApplNEn[2].back()]);
+                    enDisProbApplVec[2].back()[0]=0.;
+                    for(int i=1; i<int(enDisNumLawApplNEn[j][k]+1); i++)
                     {
-                        (enDisProbApplVec[2].back())[low]=enDisProbApplVec[j][k][low];
+                        (enDisProbApplVec[2].back())[i]=enDisProbApplVec[j][k][i-1];
                     }
+                    enDisProbApplVec[2].back()[enDisNumLawApplNEn[j][k]+1]=0.;
+                    enDisProbApplVec[2].back()[enDisNumLawApplNEn[j][k]+2]=0.;
                 }
             }
 
@@ -3150,13 +3368,13 @@ void MakeFissionFSFile(int *MTRList, int *MTRListPos, string outDirName, string 
     stream.precision(6);
     stream.setf(std::ios::scientific);
 
-    int frameFlag=2, repFlag=2;
+    int frameFlag=1, repFlag=2;
 
     vector<int> fisPReacIndex;
 
     //check the reference frame that the data has been gathered from
-    if(TYRList[2]>0)
-        frameFlag=1;
+    if(TYRList[2]<0)
+        frameFlag=2;
 
     stream.fill(' ');
 
@@ -3647,10 +3865,10 @@ void MakeFissionFSFile(int *MTRList, int *MTRListPos, string outDirName, string 
         if(nCSVec[i])
         {
             //check the reference frame that the data has been gathered from
-            if(TYRList[i]>0)
-                frameFlag=1;
-            else
+            if(TYRList[i]<0)
                 frameFlag=2;
+            else
+                frameFlag=1;
 
             stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0 << endl;
 
@@ -3991,31 +4209,41 @@ void CreateMT4(int* MTRListPos, string outDirName, string isoName, int isoNum, d
             {
                 if(enDisLaw[j][k]<44)
                 {
-                    enDisNumLawApplNReg[7].push_back(enDisNumLawApplNReg[j][k]);
-                    enDisNumLawApplNEn[7].push_back(enDisNumLawApplNEn[j][k]);
+                    enDisNumLawApplNReg[2].push_back(enDisNumLawApplNReg[j][k]);
+                    enDisNumLawApplNEn[7].push_back(enDisNumLawApplNEn[j][k]+3);
                     enDisRangeVec[7].push_back(new int[enDisNumLawApplNReg[j][k]]);
                     for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
                     {
                         enDisRangeVec[7].back()[i]=enDisRangeVec[j][k][i];
                     }
+                    enDisRangeVec[7].back()[0]+=1;
+                    enDisRangeVec[7].back()[enDisNumLawApplNReg[j][k]-1]+=2;
+
                     enDisSchemeVec[7].push_back(new int[enDisNumLawApplNReg[j][k]]);
                     for(int i=0; i<enDisNumLawApplNReg[j][k]; i++)
                     {
                         enDisSchemeVec[7].back()[i]=enDisSchemeVec[j][k][i];
                     }
-                    enDisEnApplVec[7].push_back(new double[enDisNumLawApplNEn[j][k]]);
-                    for(int i=0; i<enDisNumLawApplNEn[j][k]; i++)
+
+                    enDisEnApplVec[7].push_back(new double[enDisNumLawApplNEn[7].back()]);
+                    enDisEnApplVec[7].back()[0]=enDisEnApplVec[j][k][0];
+                    for(int i=1; i<enDisNumLawApplNEn[j][k]+1; i++)
                     {
-                        enDisEnApplVec[7].back()[i]=enDisEnApplVec[j][k][i];
+                        enDisEnApplVec[7].back()[i]=enDisEnApplVec[j][k][i-1];
                     }
-                    enDisProbApplVec[7].push_back(new double [enDisNumLawApplNEn[j][k]]);
-                    for(low=0; low<int(enDisNumLawApplNEn[j][k]); low++)
+                    enDisEnApplVec[7].back()[enDisNumLawApplNEn[j][k]+1]=enDisEnApplVec[j][k][enDisNumLawApplNEn[j][k]-1]*1.000001;
+                    enDisEnApplVec[7].back()[enDisNumLawApplNEn[j][k]+2]=enDisEnApplVec[7].back()[enDisNumLawApplNEn[j][k]+1];
+
+                    enDisProbApplVec[7].push_back(new double [enDisNumLawApplNEn[7].back()]);
+                    enDisProbApplVec[7].back()[0]=0.;
+                    for(int i=1; i<int(enDisNumLawApplNEn[j][k]+1); i++)
                     {
-                        (enDisProbApplVec[7].back())[low]=enDisProbApplVec[j][k][low];
+                        (enDisProbApplVec[7].back())[i]=enDisProbApplVec[j][k][i-1];
                     }
+                    enDisProbApplVec[7].back()[enDisNumLawApplNEn[j][k]+1]=0.;
+                    enDisProbApplVec[7].back()[enDisNumLawApplNEn[j][k]+2]=0.;
                 }
             }
-
         }
 
         int countProc=0;
@@ -4336,7 +4564,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
             dirNum=1;
         }
 
-        frameFlag=2;
+        frameFlag=1;
         repFlag=2;
         stream.str("");
         stream.clear();
@@ -4347,8 +4575,8 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
         if(MTRListPos[i]!=-1)
         {
             //check the reference frame that the data has been gathered from
-            if(TYRList[MTRListPos[i]]>0)
-                frameFlag=1;
+            if(TYRList[MTRListPos[i]]<0)
+                frameFlag=2;
 
             stream.fill(' ');
 
@@ -4468,7 +4696,11 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                     stream << std::setw(14) << std::right << dirNum-1 << std::setw(14) << std::right << 6 << '\n';
                     stream << std::setw(14) << std::right << isoMass;
                     stream << std::setw(14) << std::right << frameFlag;
-                    stream << std::setw(14) << std::right << angEnDist[i].size() << '\n';
+                    //stream << std::setw(14) << std::right << angEnDist[i].size() << '\n';
+                    if(angEnDist[i].size()>0)
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    else
+                        stream << std::setw(14) << std::right << 0 << '\n';
 
                     for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
                     {
@@ -4516,6 +4748,9 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
 
                             angEnDist[i][count]->WriteG4NDLData(stream);
+
+                            //break after first
+                            break;
                         }
                         else
                             count--;
@@ -4823,7 +5058,11 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                     stream << std::setw(14) << std::right << MTRList[i] << std::setw(14) << std::right << 0 << '\n';
                     stream << std::setw(14) << std::right << isoMass;
                     stream << std::setw(14) << std::right << frameFlag;
-                    stream << std::setw(14) << std::right << angEnDist[i].size() << '\n';
+                    //stream << std::setw(14) << std::right << angEnDist[i].size() << '\n';
+                    if(angEnDist[i].size()>0)
+                        stream << std::setw(14) << std::right << 1 << '\n';
+                    else
+                        stream << std::setw(14) << std::right << 0 << '\n';
 
                     for(int j=0, count=0; j<int(enDisLaw[i].size()); j++, count++)
                     {
@@ -4871,6 +5110,9 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
                             }
 
                             angEnDist[i][count]->WriteG4NDLData(stream);
+
+                            //break after first
+                            break;
                         }
                         else
                             count--;

@@ -192,20 +192,20 @@ void EnerDistConTab::WriteG4NDLData(stringstream &stream)
     //convert this to G4NDL theRepresentationType=1
 
     // here we set correct the energy prob so that it is integrated over its energy regime
-    for(int i=0; i<numIncEner; i++)
-    {
-        for(int j=0; j<numPEnerPoints[i]; j++)
-        {
-            if(outEner[i][j]==0.)
-                    outEner[i][j]=1.0e-12;
-            if(j==numPEnerPoints[i]-1)
-            {
-                outProb[i][j] = outSumProb[i][j];
-            }
-            else
-                outProb[i][j] = outSumProb[i][j+1]-outSumProb[i][j];
-        }
-    }
+//    for(int i=0; i<numIncEner; i++)
+//    {
+//        for(int j=0; j<numPEnerPoints[i]; j++)
+//        {
+//            if(outEner[i][j]==0.)
+//                    outEner[i][j]=1.0e-12;
+//            if(j==numPEnerPoints[i]-1)
+//            {
+//                outProb[i][j] = outSumProb[i][j];
+//            }
+//            else
+//                outProb[i][j] = outSumProb[i][j+1]-outSumProb[i][j];
+//        }
+//    }
 
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 

@@ -196,24 +196,24 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
     // may be able to exactly convert it to DistLaw=1
 
     // here we set correct the energy prob so that it is integrated over its energy regime
-    for(int i=0; i<numIncEner; i++)
-    {
-        for(int j=0; j<numPEnerPoints[i]; j++)
-        {
-            if(j==0)
-            {
-                if(outEner[i][j]==0.)
-                    outEner[i][j]=1.0e-12;
-
-                if(numPEnerPoints[i]==2)
-                    outEnerProb[i][j] = outEnerSumProb[i][j+1];
-                else
-                    outEnerProb[i][j] = outEnerSumProb[i][j];
-            }
-            else
-                outEnerProb[i][j] = outEnerSumProb[i][j]-outEnerSumProb[i][j-1];
-        }
-    }
+//    for(int i=0; i<numIncEner; i++)
+//    {
+//        for(int j=0; j<numPEnerPoints[i]; j++)
+//        {
+//            if(j==0)
+//            {
+//                if(outEner[i][j]==0.)
+//                    outEner[i][j]=1.0e-12;
+//
+//                if(numPEnerPoints[i]==2)
+//                    outEnerProb[i][j] = outEnerSumProb[i][j+1];
+//                else
+//                    outEnerProb[i][j] = outEnerSumProb[i][j];
+//            }
+//            else
+//                outEnerProb[i][j] = outEnerSumProb[i][j]-outEnerSumProb[i][j-1];
+//        }
+//    }
 
      stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
@@ -223,7 +223,7 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << intScheme1[i] << '\n';
     }
 
-    double sum;
+    double sum1, sum2;
     for(int i=0; i<numIncEner; i++)
     {
         stream << std::setw(14) << std::right << incEner[i]*1000000;
@@ -232,24 +232,34 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
         stream << std::setw(14) << std::right << 1 << '\n';
         stream << std::setw(14) << std::right << numDistSample << std::setw(14) << std::right << 2 << '\n';
 
+//        sum1=0.;
+//        for(int j=0; j<numDistSample; j++)
+//        {
+//            sum2 = 0.;
+//            for(int k=0; k<numPEnerPoints[i]; k++)
+//            {
+//                sum2 += outEnerProb[i][k]*outAngProb[i][k][j];
+//            }
+//            sum1+=sum2;
+//            if(sum2<=0.)
+//            {
+//                cout << "Error with angular energy probability data" << endl;
+//            }
+//        }
+
         for(int j=0; j<numDistSample; j++)
         {
             stream << std::setw(14) << std::right << outAng[j];
             stream << std::setw(14) << std::right << numPEnerPoints[i];
             stream << std::setw(14) << std::right << 1 << '\n';
             stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
-            sum = 0.;
+
             for(int k=0; k<numPEnerPoints[i]; k++)
             {
                 stream << std::setw(14) << std::right << outEner[i][k]*1000000;
-                stream << std::setw(14) << std::right << outEnerProb[i][k]*outAngProb[i][k][j];
-                sum += outEnerProb[i][k]*outAngProb[i][k][j];
+                stream << std::setw(14) << std::right << outEnerProb[i][k]*outAngProb[i][k][j];// /sum1*numDistSample;
                 if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
                     stream << '\n';
-            }
-            if(sum<=0.)
-            {
-                cout << "Error with angular energy probability data" << endl;
             }
         }
     }
