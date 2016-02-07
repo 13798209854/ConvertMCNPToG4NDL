@@ -4556,7 +4556,7 @@ void MakeInElasticFSFile(int *MTRListPos, string outDirName, string isoName, int
     for(int i=startProc; i<endProc; i++)
     {
         dirNum++;
-        if((dirNum==12)||(dirNum==16)||(dirNum==29)||(dirNum==32))
+        if((dirNum==12)||(dirNum==16)||(dirNum==17)||(dirNum==29)||(dirNum==32))
             dirNum++;
 
         if(i>=numProcess2)
