@@ -1,5 +1,9 @@
 #include "../include/AngEnDist3DTab.hh"
 
+#ifndef NeutHPMod_Use
+#define NeutHPMod_Use 0
+#endif
+
 AngEnDist3DTab::AngEnDist3DTab(int EnerDistStart)
 {
     startEnerDist =  EnerDistStart;
@@ -250,6 +254,49 @@ void AngEnDist3DTab::ExtractMCNPData(stringstream &stream, int &count)
     }
 }
 
+#if NeutHPMod_Use
+void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
+{
+    //this is MCNP Law 61
+    //convert this to G4NDL mod DistLaw=61
+    //some approximations are used in the transformation
+
+
+
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
+
+    for(int i=0; i<numRegs; i++)
+    {
+        stream << std::setw(14) << std::right << regEndPos[i];
+        stream << std::setw(14) << std::right << intScheme1[i] << '\n';
+    }
+    for(int i=0; i<numIncEner; i++)
+    {
+        stream << std::setw(14) << std::right << incEner[i]*1000000;
+        stream << std::setw(14) << std::right << numPEnerPoints[i];
+        // assume linear interpolation
+        stream << std::setw(14) << std::right << 1 << '\n';
+        stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
+
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            stream << std::setw(14) << std::right << outEner[i][j]*1000000;
+            stream << std::setw(14) << std::right << outEnerSumProb[i][j];
+            stream << std::setw(14) << std::right << numPAngPoints[i][j];
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numPAngPoints[i][j] << std::setw(14) << std::right << intScheme3[i][j] << '\n';
+
+            for(int k=0; k<numPAngPoints[i][j]; k++)
+            {
+                stream << std::setw(14) << std::right << outAng[i][j][k];
+                stream << std::setw(14) << std::right << outAngProb[i][j][k];
+                if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
+                    stream << '\n';
+            }
+        }
+    }
+}
+#else
 void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 61
@@ -425,6 +472,7 @@ void AngEnDist3DTab::WriteG4NDLData(stringstream &stream)
     delete [] sumAngPoints;
     delete [] newNumAngPoints;
 }
+#endif
 
 void AngEnDist3DTab::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)
 {

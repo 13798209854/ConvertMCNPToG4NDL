@@ -1,5 +1,9 @@
 #include "../include/EnerDistEvapSpec.hh"
 
+#ifndef NeutHPMod_Use
+#define NeutHPMod_Use 0
+#endif
+
 EnerDistEvapSpec::EnerDistEvapSpec()
 {
     //ctor
@@ -96,5 +100,7 @@ void EnerDistEvapSpec::WriteG4NDLData(stringstream &stream)
     {
         cout << "Error with energy probability data" << endl;
     }
-
+    #if NeutHPMod_Use
+    stream << restrictEner << '\n';
+    #endif
 }

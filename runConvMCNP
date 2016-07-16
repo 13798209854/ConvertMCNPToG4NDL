@@ -15,7 +15,7 @@ elif [ "$1" = "valgrind" ]; then
 	valgrind --leak-check=full --show-reachable=yes --error-limit=no --track-origins=yes --log-file=convMCNP.log ./convertMCNPToG4NDL $2 $3 $4
 
 else
-	cmake -DTOPC_USE=1 -DTOPC_USE_SEQ=0 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-std=c++11 ./
+	cmake -DTOPC_USE=1 -DTOPC_USE_SEQ=0 -DMCNP6Set_Use=1 -DNeutHPMod_Use=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-std=c++11 ./
 	make clean
 	make -j4
 	./convertMCNPToG4NDL $1 $2 $3

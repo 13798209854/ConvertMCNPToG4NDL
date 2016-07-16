@@ -1,5 +1,9 @@
 #include "../include/EnerDistWattSpec.hh"
 
+#ifndef NeutHPMod_Use
+#define NeutHPMod_Use 0
+#endif
+
 EnerDistWattSpec::EnerDistWattSpec()
 {
     //ctor
@@ -157,4 +161,7 @@ void EnerDistWattSpec::WriteG4NDLData(stringstream &stream)
         if(((i+1)%3==0)||(i==numIncEnerB-1))
             stream << '\n';
     }
+    #if NeutHPMod_Use
+    stream << rejectEner << '\n';
+    #endif
 }

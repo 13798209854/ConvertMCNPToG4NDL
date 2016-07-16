@@ -1,5 +1,9 @@
 #include "../include/AngEnDistKallbach.hh"
 
+#ifndef NeutHPMod_Use
+#define NeutHPMod_Use 0
+#endif
+
 AngEnDistKallbach::AngEnDistKallbach(/*int EnerDistStart*/)
 {
     /*startEnerDist =  EnerDistStart;*/
@@ -189,6 +193,47 @@ void AngEnDistKallbach::ExtractMCNPData(stringstream &stream, int &count)
 
 }
 
+#if NeutHPMod_Use
+void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
+{
+    //this is MCNP Law 61
+    //convert this to G4NDL mod DistLaw=61
+    //some approximations are used in the transformation
+
+    stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
+
+    for(int i=0; i<numRegs; i++)
+    {
+        stream << std::setw(14) << std::right << regEndPos[i];
+        stream << std::setw(14) << std::right << intScheme1[i] << '\n';
+    }
+    for(int i=0; i<numIncEner; i++)
+    {
+        stream << std::setw(14) << std::right << incEner[i]*1000000;
+        stream << std::setw(14) << std::right << numPEnerPoints[i];
+        // assume linear interpolation
+        stream << std::setw(14) << std::right << 1 << '\n';
+        stream << std::setw(14) << std::right << numPEnerPoints[i] << std::setw(14) << std::right << intScheme2[i] << '\n';
+
+        for(int j=0; j<numPEnerPoints[i]; j++)
+        {
+            stream << std::setw(14) << std::right << outEner[i][j]*1000000;
+            stream << std::setw(14) << std::right << outEnerSumProb[i][j];
+            stream << std::setw(14) << std::right << numDistSample;
+            stream << std::setw(14) << std::right << 1 << '\n';
+            stream << std::setw(14) << std::right << numDistSample << std::setw(14) << std::right << 2 << '\n';
+
+            for(int k=0; k<numDistSample; k++)
+            {
+                stream << std::setw(14) << std::right << outAng[k];
+                stream << std::setw(14) << std::right << outAngProb[i][j][k];
+                if(((k+1)%3==0)||(k==numPEnerPoints[i]-1))
+                    stream << '\n';
+            }
+        }
+    }
+}
+#else
 void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
 {
     //this is MCNP Law 44
@@ -264,7 +309,7 @@ void AngEnDistKallbach::WriteG4NDLData(stringstream &stream)
         }
     }
 }
-
+#endif
 void AngEnDistKallbach::ConvertToEnerAndAngDist(EnergyDist **enDist, AngularDist **angDist, int &numAngEner)
 {
     if(enDist[0])

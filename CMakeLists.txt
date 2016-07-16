@@ -26,6 +26,18 @@ if(TOPC_USE)
           OUTPUT_VARIABLE TOPC_CFLAGS)
 endif()
 
+# Output library with MCNP6 settings
+option(NeutHPMod_Use "Use modified NeutronHP format" OFF)
+if(MCNP6Set_Use)
+  add_definitions(-DMCNP6Set_Use=1)
+  add_definitions(-DNeutHPMod_Use=1)
+endif()
+
+# Output library in the modified NeutronHP format
+option(NeutHPMod_Use "Use modified NeutronHP format" OFF)
+if(NeutHPMod_Use)
+  add_definitions(-DNeutHPMod_Use=1)
+endif()
 
 #----------------------------------------------------------------------------
 # Locate sources and headers for this project

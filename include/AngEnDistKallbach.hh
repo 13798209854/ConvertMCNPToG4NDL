@@ -3,7 +3,7 @@
 
 #include "AngularEnergyDist.hh"
 
-#define numDistSample 10
+#define numDistSample 30
 
 /*
 Created By: Wesley Ford June 17, 2015

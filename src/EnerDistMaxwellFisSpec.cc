@@ -1,5 +1,9 @@
 #include "../include/EnerDistMaxwellFisSpec.hh"
 
+#ifndef NeutHPMod_Use
+#define NeutHPMod_Use 0
+#endif
+
 EnerDistMaxwellFisSpec::EnerDistMaxwellFisSpec()
 {
     //ctor
@@ -96,4 +100,7 @@ void EnerDistMaxwellFisSpec::WriteG4NDLData(stringstream &stream)
     {
         cout << "Error with energy probability data" << endl;
     }
+    #if NeutHPMod_Use
+    stream << restrictEner*1000000 << '\n';
+    #endif
 }

@@ -1,5 +1,9 @@
 #include "../include/EnerDistLevScat.hh"
 
+#ifndef NeutHPMod_Use
+#define NeutHPMod_Use 0
+#endif
+
 EnerDistLevScat::EnerDistLevScat(double enerRangeStart, double enerRangeEnd)
 {
     enerStart=enerRangeStart;
@@ -16,6 +20,16 @@ void EnerDistLevScat::ExtractMCNPData(stringstream &stream, int &count)
     stream >> firstHalfEq >> secondHalfEq; count=count+2;
 }
 
+#if NeutHPMod_Use
+void EnerDistLevScat::WriteG4NDLData(stringstream &stream)
+{
+    //this is MCNP Law 3
+//direct translate to new geant4 class
+
+    stream << std::setw(14) << std::right << firstHalfEq << std::setw(14) << std::right << secondHalfEq << '\n';
+
+}
+#else
 //For Fission
 void EnerDistLevScat::WriteG4NDLData(stringstream &stream)
 {
@@ -45,3 +59,4 @@ void EnerDistLevScat::WriteG4NDLData(stringstream &stream)
     stream << '\n';
 
 }
+#endif

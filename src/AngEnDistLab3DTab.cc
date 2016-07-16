@@ -196,29 +196,6 @@ void AngEnDistLab3DTab::WriteG4NDLData(stringstream &stream)
     //this is MCNP Law 67
     //convert this to G4NDL DistLaw=7
 
-    // here we set correct the energy prob so that it is integrated over its energy regime
-//    for(int i=0; i<numIncEner; i++)
-//    {
-//        for(int j=0; j<numPAngPoints[i]; j++)
-//        {
-//            for(int k=0; k<numPEnerPoints[i][j]; k++)
-//            {
-//                if(k==0)
-//                {
-//                    if(outEner[i][j][k]==0.)
-//                        outEner[i][j][k]=1.0e-12;
-//
-//                    if(numPEnerPoints[i][j]==2)
-//                        outEnProb[i][j][k] = outEnSumProb[i][j][k+1];
-//                    else
-//                        outEnProb[i][j][k] = outEnSumProb[i][j][k];
-//                }
-//                else
-//                    outEnProb[i][j][k] = outEnSumProb[i][j][k]-outEnSumProb[i][j][k-1];
-//            }
-//        }
-//    }
-
     stream << std::setw(14) << std::right << numIncEner << std::setw(14) << std::right << numRegs << '\n';
 
     for(int i=0; i<numRegs; i++)
